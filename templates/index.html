@@ -84,8 +84,8 @@
 
     <script>
         // ── Estado global ──
-        let arquivoConteudo = null;
-        let arquivoNome = null;
+        let arquivoSelecionado = null;
+        let jobId = null;
         let processando = false;
 
         // ── Upload ──
@@ -105,37 +105,33 @@
             e.preventDefault();
             uploadZone.classList.remove('drag-over');
             const file = e.dataTransfer.files[0];
-            if (file) carregarArquivo(file);
+            if (file) selecionarArquivo(file);
         });
 
         fileInput.addEventListener('change', () => {
-            if (fileInput.files[0]) carregarArquivo(fileInput.files[0]);
+            if (fileInput.files[0]) selecionarArquivo(fileInput.files[0]);
         });
 
-        function carregarArquivo(file) {
+        function selecionarArquivo(file) {
             if (!file.name.toLowerCase().endsWith('.txt')) {
                 alert('Por favor, selecione um arquivo .txt com código ZPL.');
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                arquivoConteudo = e.target.result;
-                arquivoNome = file.name;
+            arquivoSelecionado = file;
+            jobId = null; // reseta o job ao trocar de arquivo
 
-                // Atualiza UI
-                uploadZone.classList.add('has-file');
-                document.getElementById('upload-icon').textContent = '📄';
-                document.getElementById('upload-title').textContent = 'Arquivo carregado com sucesso!';
-                document.getElementById('upload-subtitle').style.display = 'none';
-                document.getElementById('file-name-text').textContent = `${file.name} (${formatarTamanho(file.size)})`;
-                document.getElementById('file-name').classList.add('visible');
+            // Atualiza UI
+            uploadZone.classList.add('has-file');
+            document.getElementById('upload-icon').textContent = '📄';
+            document.getElementById('upload-title').textContent = 'Arquivo carregado com sucesso!';
+            document.getElementById('upload-subtitle').style.display = 'none';
+            document.getElementById('file-name-text').textContent = `${file.name} (${formatarTamanho(file.size)})`;
+            document.getElementById('file-name').classList.add('visible');
 
-                // Habilita botões
-                document.getElementById('btn-produto').disabled = false;
-                document.getElementById('btn-volume').disabled = false;
-            };
-            reader.readAsText(file, 'utf-8');
+            // Habilita botões
+            document.getElementById('btn-produto').disabled = false;
+            document.getElementById('btn-volume').disabled = false;
         }
 
         function formatarTamanho(bytes) {
@@ -144,9 +140,9 @@
             return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
         }
 
-        // ── Geração ──
-        function iniciarGeracao(modo) {
-            if (!arquivoConteudo || processando) return;
+        // ── Upload para o servidor e geração ──
+        async function iniciarGeracao(modo) {
+            if (!arquivoSelecionado || processando) return;
             processando = true;
 
             // Reset UI
@@ -162,27 +158,48 @@
             progressPanel.classList.add('visible');
             progressBar.classList.add('indeterminate');
             progressBar.style.width = '';
+            progressBar.style.background = '';
             spinner.style.display = 'block';
 
             const nomesModo = {
                 produto: '📦 Etiqueta de Produto (60×40mm)',
                 volume: '📫 Etiqueta de Volume (100×150mm)'
             };
-            progressTitleText.textContent = `Gerando: ${nomesModo[modo]}`;
+            progressTitleText.textContent = `Enviando arquivo...`;
 
-            // Desabilita botões durante o processamento
             document.getElementById('btn-produto').disabled = true;
             document.getElementById('btn-volume').disabled = true;
 
-            // Codifica o conteúdo em Base64 para envio via URL
-            const conteudoB64 = btoa(unescape(encodeURIComponent(arquivoConteudo)));
-            const url = `/gerar/${modo}?conteudo=${encodeURIComponent(conteudoB64)}`;
-
-            // Scroll para o painel de progresso
             progressPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-            // Abre SSE
-            const evtSource = new EventSource(url);
+            // Passo 1: envia o arquivo via POST (somente se ainda não fez upload)
+            try {
+                if (!jobId) {
+                    adicionarLog(logBox, 'info', 'Enviando arquivo para o servidor...');
+                    const formData = new FormData();
+                    formData.append('arquivo', arquivoSelecionado);
+
+                    const resp = await fetch('/upload', { method: 'POST', body: formData });
+                    const data = await resp.json();
+
+                    if (!resp.ok || data.erro) {
+                        throw new Error(data.erro || 'Falha no upload');
+                    }
+
+                    jobId = data.job_id;
+                    adicionarLog(logBox, 'info', 'Arquivo recebido. Iniciando processamento...');
+                }
+
+                progressTitleText.textContent = `Gerando: ${nomesModo[modo]}`;
+
+            } catch (err) {
+                adicionarLog(logBox, 'error', `Erro no upload: ${err.message}`);
+                finalizarComErro();
+                return;
+            }
+
+            // Passo 2: abre o SSE com o job_id
+            const evtSource = new EventSource(`/gerar/${modo}?job_id=${jobId}`);
 
             evtSource.onmessage = (event) => {
                 const data = JSON.parse(event.data);
@@ -190,7 +207,7 @@
 
                 if (data.tipo === 'concluido') {
                     evtSource.close();
-                    finalizarProcessamento(data, modo);
+                    finalizarProcessamento(data);
                 } else if (data.tipo === 'erro') {
                     evtSource.close();
                     finalizarComErro();
@@ -199,18 +216,19 @@
 
             evtSource.onerror = () => {
                 evtSource.close();
-                adicionarLog(logBox, 'error', 'Erro de conexão com o servidor. Verifique se o Flask está rodando.');
+                adicionarLog(logBox, 'error', 'Erro de conexão com o servidor.');
                 finalizarComErro();
             };
         }
 
         function adicionarLog(logBox, tipo, msg) {
             const tipoMap = {
-                info: { dot: '◆', cls: 'info' },
-                progress: { dot: '▶', cls: '' },
-                error: { dot: '✕', cls: 'error' },
+                info:      { dot: '◆', cls: 'info' },
+                progress:  { dot: '▶', cls: '' },
+                error:     { dot: '✕', cls: 'error' },
+                erro:      { dot: '✕', cls: 'error' },
                 concluido: { dot: '✓', cls: 'success' },
-                erro: { dot: '✕', cls: 'error' },
+                success:   { dot: '✓', cls: 'success' },
             };
             const t = tipoMap[tipo] || { dot: '·', cls: '' };
             const line = document.createElement('div');
@@ -220,7 +238,7 @@
             logBox.scrollTop = logBox.scrollHeight;
         }
 
-        function finalizarProcessamento(data, modo) {
+        function finalizarProcessamento(data) {
             const progressBar = document.getElementById('progress-bar');
             const spinner = document.getElementById('spinner');
             const downloadBtn = document.getElementById('download-btn');
@@ -236,7 +254,6 @@
             downloadBtn.setAttribute('download', data.arquivo);
             downloadBtn.classList.add('visible');
 
-            // Reabilita botões
             document.getElementById('btn-produto').disabled = false;
             document.getElementById('btn-volume').disabled = false;
             processando = false;
