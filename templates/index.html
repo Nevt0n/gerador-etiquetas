@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Etiquetas ZPL → PDF</title>
+    <meta name="description" content="Converta arquivos ZPL em PDF para etiquetas de produto (60×40mm) e volume (100×150mm) com facilidade.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+
+        <!-- Header -->
+        <header>
+            <div class="logo-icon">🏷️</div>
+            <h1>Gerador de Etiquetas</h1>
+            <p>Converta ZPL em PDF — Produto 60×40mm &amp; Volume 100×150mm</p>
+        </header>
+
+        <!-- Upload Zone -->
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+            <span class="upload-icon" id="upload-icon">📂</span>
+            <p class="upload-title" id="upload-title">Arraste o arquivo TXT aqui</p>
+            <p class="upload-subtitle" id="upload-subtitle">ou <span>clique para selecionar</span> o arquivo ZPL</p>
+            <div class="file-name" id="file-name">
+                <span>✅</span>
+                <span id="file-name-text"></span>
+            </div>
+            <input type="file" id="file-input" accept=".txt">
+        </div>
+
+        <!-- Cards de Ação -->
+        <div class="cards-grid">
+
+            <!-- Card Produto -->
+            <div class="card produto" id="card-produto">
+                <span class="card-icon">📦</span>
+                <div class="card-title">Etiqueta de Produto</div>
+                <div class="card-subtitle">Etiquetas de identificação de produto</div>
+                <span class="card-badge">📐 60 × 40 mm</span>
+                <button class="card-btn" id="btn-produto" onclick="iniciarGeracao('produto')" disabled>
+                    Gerar PDF de Produto
+                </button>
+            </div>
+
+            <!-- Card Volume -->
+            <div class="card volume" id="card-volume">
+                <span class="card-icon">📫</span>
+                <div class="card-title">Etiqueta de Volume</div>
+                <div class="card-subtitle">Etiquetas para caixas e volumes de envio</div>
+                <span class="card-badge">📐 100 × 150 mm</span>
+                <button class="card-btn" id="btn-volume" onclick="iniciarGeracao('volume')" disabled>
+                    Gerar PDF de Volume
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Painel de Progresso -->
+        <div class="progress-panel" id="progress-panel">
+            <div class="progress-header">
+                <div class="progress-title">
+                    <div class="spinner" id="spinner"></div>
+                    <span id="progress-title-text">Processando...</span>
+                </div>
+                <span id="progress-count" style="font-size: 0.8rem; color: var(--text-muted);"></span>
+            </div>
+
+            <div class="progress-bar-wrap">
+                <div class="progress-bar indeterminate" id="progress-bar"></div>
+            </div>
+
+            <div class="log-box" id="log-box"></div>
+
+            <a class="download-btn" id="download-btn" href="#" download>
+                ⬇️ Baixar PDF Gerado
+            </a>
+        </div>
+
+    </div>
+
+    <script>
+        // ── Estado global ──
+        let arquivoConteudo = null;
+        let arquivoNome = null;
+        let processando = false;
+
+        // ── Upload ──
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('drag-over');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('drag-over');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file) carregarArquivo(file);
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files[0]) carregarArquivo(fileInput.files[0]);
+        });
+
+        function carregarArquivo(file) {
+            if (!file.name.toLowerCase().endsWith('.txt')) {
+                alert('Por favor, selecione um arquivo .txt com código ZPL.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                arquivoConteudo = e.target.result;
+                arquivoNome = file.name;
+
+                // Atualiza UI
+                uploadZone.classList.add('has-file');
+                document.getElementById('upload-icon').textContent = '📄';
+                document.getElementById('upload-title').textContent = 'Arquivo carregado com sucesso!';
+                document.getElementById('upload-subtitle').style.display = 'none';
+                document.getElementById('file-name-text').textContent = `${file.name} (${formatarTamanho(file.size)})`;
+                document.getElementById('file-name').classList.add('visible');
+
+                // Habilita botões
+                document.getElementById('btn-produto').disabled = false;
+                document.getElementById('btn-volume').disabled = false;
+            };
+            reader.readAsText(file, 'utf-8');
+        }
+
+        function formatarTamanho(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // ── Geração ──
+        function iniciarGeracao(modo) {
+            if (!arquivoConteudo || processando) return;
+            processando = true;
+
+            // Reset UI
+            const logBox = document.getElementById('log-box');
+            const progressPanel = document.getElementById('progress-panel');
+            const downloadBtn = document.getElementById('download-btn');
+            const spinner = document.getElementById('spinner');
+            const progressBar = document.getElementById('progress-bar');
+            const progressTitleText = document.getElementById('progress-title-text');
+
+            logBox.innerHTML = '';
+            downloadBtn.classList.remove('visible');
+            progressPanel.classList.add('visible');
+            progressBar.classList.add('indeterminate');
+            progressBar.style.width = '';
+            spinner.style.display = 'block';
+
+            const nomesModo = {
+                produto: '📦 Etiqueta de Produto (60×40mm)',
+                volume: '📫 Etiqueta de Volume (100×150mm)'
+            };
+            progressTitleText.textContent = `Gerando: ${nomesModo[modo]}`;
+
+            // Desabilita botões durante o processamento
+            document.getElementById('btn-produto').disabled = true;
+            document.getElementById('btn-volume').disabled = true;
+
+            // Codifica o conteúdo em Base64 para envio via URL
+            const conteudoB64 = btoa(unescape(encodeURIComponent(arquivoConteudo)));
+            const url = `/gerar/${modo}?conteudo=${encodeURIComponent(conteudoB64)}`;
+
+            // Scroll para o painel de progresso
+            progressPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // Abre SSE
+            const evtSource = new EventSource(url);
+
+            evtSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                adicionarLog(logBox, data.tipo, data.msg);
+
+                if (data.tipo === 'concluido') {
+                    evtSource.close();
+                    finalizarProcessamento(data, modo);
+                } else if (data.tipo === 'erro') {
+                    evtSource.close();
+                    finalizarComErro();
+                }
+            };
+
+            evtSource.onerror = () => {
+                evtSource.close();
+                adicionarLog(logBox, 'error', 'Erro de conexão com o servidor. Verifique se o Flask está rodando.');
+                finalizarComErro();
+            };
+        }
+
+        function adicionarLog(logBox, tipo, msg) {
+            const tipoMap = {
+                info: { dot: '◆', cls: 'info' },
+                progress: { dot: '▶', cls: '' },
+                error: { dot: '✕', cls: 'error' },
+                concluido: { dot: '✓', cls: 'success' },
+                erro: { dot: '✕', cls: 'error' },
+            };
+            const t = tipoMap[tipo] || { dot: '·', cls: '' };
+            const line = document.createElement('div');
+            line.className = `log-line ${t.cls}`;
+            line.innerHTML = `<span class="dot">${t.dot}</span><span class="text">${msg}</span>`;
+            logBox.appendChild(line);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function finalizarProcessamento(data, modo) {
+            const progressBar = document.getElementById('progress-bar');
+            const spinner = document.getElementById('spinner');
+            const downloadBtn = document.getElementById('download-btn');
+            const progressTitleText = document.getElementById('progress-title-text');
+
+            progressBar.classList.remove('indeterminate');
+            progressBar.style.width = '100%';
+            progressBar.style.background = 'linear-gradient(90deg, #22c55e, #16a34a)';
+            spinner.style.display = 'none';
+            progressTitleText.textContent = `✅ Concluído — ${data.total} página(s) gerada(s)`;
+
+            downloadBtn.href = `/download/${data.arquivo}`;
+            downloadBtn.setAttribute('download', data.arquivo);
+            downloadBtn.classList.add('visible');
+
+            // Reabilita botões
+            document.getElementById('btn-produto').disabled = false;
+            document.getElementById('btn-volume').disabled = false;
+            processando = false;
+        }
+
+        function finalizarComErro() {
+            const progressBar = document.getElementById('progress-bar');
+            const spinner = document.getElementById('spinner');
+            const progressTitleText = document.getElementById('progress-title-text');
+
+            progressBar.classList.remove('indeterminate');
+            progressBar.style.width = '100%';
+            progressBar.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
+            spinner.style.display = 'none';
+            progressTitleText.textContent = '❌ Falha na geração';
+
+            document.getElementById('btn-produto').disabled = false;
+            document.getElementById('btn-volume').disabled = false;
+            processando = false;
+        }
+    </script>
+</body>
+</html>

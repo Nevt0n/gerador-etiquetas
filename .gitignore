@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Ambiente virtual
+venv/
+env/
+.env
+.venv
+
+# PDFs gerados pelo app
+*.pdf
+
+# Arquivos de sistema Windows
+Thumbs.db
+desktop.ini
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Logs
+*.log

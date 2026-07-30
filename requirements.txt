@@ -1,0 +1,4 @@
+flask
+requests
+fpdf2
+gunicorn
