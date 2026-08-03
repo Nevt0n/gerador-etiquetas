@@ -125,7 +125,7 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print("=" * 50)
-    print("  Gerador de Etiquetas ZPL -> PDF")
+    print("  Ferramentas do Vendedor (Gerador ZPL + Calculadora)")
     print(f"  Acesse: http://localhost:{port}")
     print("=" * 50)
     app.run(debug=False, host='0.0.0.0', port=port)
