@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Etiquetas ZPL → PDF</title>
-    <meta name="description" content="Converta arquivos ZPL em PDF para etiquetas de produto (60×40mm) e volume (100×150mm) com facilidade.">
+    <title>Gerador de Etiquetas & Calculadora</title>
+    <meta name="description" content="Converta arquivos ZPL em PDF e calcule margens de lucro para Shopee e Mercado Livre.">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,75 +15,264 @@
 
         <!-- Header -->
         <header>
-            <div class="logo-icon">🏷️</div>
-            <h1>Gerador de Etiquetas</h1>
-            <p>Converta ZPL em PDF — Produto 60×40mm &amp; Volume 100×150mm</p>
+            <div class="logo-icon">📦</div>
+            <h1>Ferramentas do Vendedor</h1>
+            <p>Gerador de Etiquetas ZPL e Calculadora de Margem de Lucro</p>
         </header>
 
-        <!-- Upload Zone -->
-        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
-            <span class="upload-icon" id="upload-icon">📂</span>
-            <p class="upload-title" id="upload-title">Arraste o arquivo TXT aqui</p>
-            <p class="upload-subtitle" id="upload-subtitle">ou <span>clique para selecionar</span> o arquivo ZPL</p>
-            <div class="file-name" id="file-name">
-                <span>✅</span>
-                <span id="file-name-text"></span>
-            </div>
-            <input type="file" id="file-input" accept=".txt">
+        <!-- Tabs Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('tab-etiquetas', this)">🏷️ Gerador de Etiquetas</button>
+            <button class="tab-btn" onclick="switchTab('tab-calculadora', this)">💰 Calculadora de Margem</button>
         </div>
 
-        <!-- Cards de Ação -->
-        <div class="cards-grid">
-
-            <!-- Card Produto -->
-            <div class="card produto" id="card-produto">
-                <span class="card-icon">📦</span>
-                <div class="card-title">Etiqueta de Produto</div>
-                <div class="card-subtitle">Etiquetas de identificação de produto</div>
-                <span class="card-badge">📐 60 × 40 mm</span>
-                <button class="card-btn" id="btn-produto" onclick="iniciarGeracao('produto')" disabled>
-                    Gerar PDF de Produto
-                </button>
-            </div>
-
-            <!-- Card Volume -->
-            <div class="card volume" id="card-volume">
-                <span class="card-icon">📫</span>
-                <div class="card-title">Etiqueta de Volume</div>
-                <div class="card-subtitle">Etiquetas para caixas e volumes de envio</div>
-                <span class="card-badge">📐 100 × 150 mm</span>
-                <button class="card-btn" id="btn-volume" onclick="iniciarGeracao('volume')" disabled>
-                    Gerar PDF de Volume
-                </button>
-            </div>
-
-        </div>
-
-        <!-- Painel de Progresso -->
-        <div class="progress-panel" id="progress-panel">
-            <div class="progress-header">
-                <div class="progress-title">
-                    <div class="spinner" id="spinner"></div>
-                    <span id="progress-title-text">Processando...</span>
+        <!-- Tab 1: Gerador de Etiquetas -->
+        <div id="tab-etiquetas" class="tab-content active">
+            <!-- Upload Zone -->
+            <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+                <span class="upload-icon" id="upload-icon">📂</span>
+                <p class="upload-title" id="upload-title">Arraste o arquivo TXT aqui</p>
+                <p class="upload-subtitle" id="upload-subtitle">ou <span>clique para selecionar</span> o arquivo ZPL</p>
+                <div class="file-name" id="file-name">
+                    <span>✅</span>
+                    <span id="file-name-text"></span>
                 </div>
-                <span id="progress-count" style="font-size: 0.8rem; color: var(--text-muted);"></span>
+                <input type="file" id="file-input" accept=".txt">
             </div>
 
-            <div class="progress-bar-wrap">
-                <div class="progress-bar indeterminate" id="progress-bar"></div>
+            <!-- Cards de Ação -->
+            <div class="cards-grid">
+                <!-- Card Produto -->
+                <div class="card produto" id="card-produto">
+                    <span class="card-icon">📦</span>
+                    <div class="card-title">Etiqueta de Produto</div>
+                    <div class="card-subtitle">Etiquetas de identificação de produto</div>
+                    <span class="card-badge">📐 60 × 40 mm</span>
+                    <button class="card-btn" id="btn-produto" onclick="iniciarGeracao('produto')" disabled>
+                        Gerar PDF de Produto
+                    </button>
+                </div>
+
+                <!-- Card Volume -->
+                <div class="card volume" id="card-volume">
+                    <span class="card-icon">📫</span>
+                    <div class="card-title">Etiqueta de Volume</div>
+                    <div class="card-subtitle">Etiquetas para caixas e volumes de envio</div>
+                    <span class="card-badge">📐 100 × 150 mm</span>
+                    <button class="card-btn" id="btn-volume" onclick="iniciarGeracao('volume')" disabled>
+                        Gerar PDF de Volume
+                    </button>
+                </div>
             </div>
 
-            <div class="log-box" id="log-box"></div>
+            <!-- Painel de Progresso -->
+            <div class="progress-panel" id="progress-panel">
+                <div class="progress-header">
+                    <div class="progress-title">
+                        <div class="spinner" id="spinner"></div>
+                        <span id="progress-title-text">Processando...</span>
+                    </div>
+                    <span id="progress-count" style="font-size: 0.8rem; color: var(--text-muted);"></span>
+                </div>
 
-            <a class="download-btn" id="download-btn" href="#" download>
-                ⬇️ Baixar PDF Gerado
-            </a>
+                <div class="progress-bar-wrap">
+                    <div class="progress-bar indeterminate" id="progress-bar"></div>
+                </div>
+
+                <div class="log-box" id="log-box"></div>
+
+                <a class="download-btn" id="download-btn" href="#" download>
+                    ⬇️ Baixar PDF Gerado
+                </a>
+            </div>
+        </div>
+
+        <!-- Tab 2: Calculadora de Margem -->
+        <div id="tab-calculadora" class="tab-content">
+            <div class="calc-container">
+                
+                <!-- Formulário -->
+                <div class="calc-form">
+                    <div class="calc-form-group">
+                        <label for="calc-marketplace">Marketplace</label>
+                        <select id="calc-marketplace" onchange="updateCalcFields(); calcularMargem()">
+                            <option value="shopee">Shopee</option>
+                            <option value="ml">Mercado Livre</option>
+                        </select>
+                    </div>
+
+                    <div class="calc-form-row">
+                        <div class="calc-form-group">
+                            <label for="calc-preco">Preço de Venda (R$)</label>
+                            <input type="number" id="calc-preco" placeholder="0.00" value="100.00" oninput="calcularMargem()">
+                        </div>
+                        <div class="calc-form-group">
+                            <label for="calc-custo">Custo do Produto (R$)</label>
+                            <input type="number" id="calc-custo" placeholder="0.00" value="40.00" oninput="calcularMargem()">
+                        </div>
+                    </div>
+
+                    <div class="calc-form-row">
+                        <div class="calc-form-group">
+                            <label for="calc-imposto">Impostos (%)</label>
+                            <input type="number" id="calc-imposto" placeholder="0" value="6.0" step="0.1" oninput="calcularMargem()">
+                        </div>
+                        <div class="calc-form-group">
+                            <label for="calc-embalagem">Embalagem/Outros (R$)</label>
+                            <input type="number" id="calc-embalagem" placeholder="0.00" value="2.00" oninput="calcularMargem()">
+                        </div>
+                    </div>
+
+                    <!-- Campos dinâmicos Shopee -->
+                    <div id="fields-shopee" style="display: flex; flex-direction: column; gap: 16px;">
+                        <div class="calc-form-group">
+                            <label for="calc-shopee-comissao">Comissão Shopee (%)</label>
+                            <select id="calc-shopee-comissao" onchange="calcularMargem()">
+                                <option value="14">14% - Padrão (Sem Frete Grátis)</option>
+                                <option value="20" selected>20% - Programa Frete Grátis</option>
+                            </select>
+                        </div>
+                        <div class="calc-form-group">
+                            <label for="calc-shopee-taxa">Taxa Fixa Shopee (R$)</label>
+                            <input type="number" id="calc-shopee-taxa" value="4.00" step="0.5" oninput="calcularMargem()">
+                        </div>
+                    </div>
+
+                    <!-- Campos dinâmicos ML -->
+                    <div id="fields-ml" style="display: none; flex-direction: column; gap: 16px;">
+                        <div class="calc-form-group">
+                            <label for="calc-ml-comissao">Tipo de Anúncio / Comissão (%)</label>
+                            <input type="number" id="calc-ml-comissao" placeholder="Ex: 14" value="14" step="0.1" oninput="calcularMargem()">
+                            <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px;">Insira a comissão da sua categoria (Geralmente 11% a 19%)</small>
+                        </div>
+                        <div class="calc-form-group">
+                            <label for="calc-ml-fixa">Taxa Fixa / Frete (R$)</label>
+                            <input type="number" id="calc-ml-fixa" value="6.00" step="0.5" oninput="calcularMargem()">
+                            <small id="ml-fixa-hint" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px;">R$ 6 para itens < R$ 79. Se >= 79, insira seu custo de frete.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resultados -->
+                <div class="calc-results">
+                    <h3 style="color: var(--text-primary); font-size: 1.1rem; margin-bottom: 8px;">Resultados</h3>
+                    
+                    <div class="calc-result-item">
+                        <span class="calc-result-label">Faturamento Total</span>
+                        <span class="calc-result-value" id="res-faturamento">R$ 0,00</span>
+                    </div>
+
+                    <div class="calc-result-item">
+                        <span class="calc-result-label">Custos Totais</span>
+                        <span class="calc-result-value" id="res-custos">R$ 0,00</span>
+                    </div>
+
+                    <div class="calc-result-item" style="margin-top: 8px;">
+                        <span class="calc-result-label" style="font-weight: 600; color: var(--text-primary);">Lucro Líquido</span>
+                        <span class="calc-result-value success" id="res-lucro">R$ 0,00</span>
+                    </div>
+
+                    <div class="calc-result-item">
+                        <span class="calc-result-label" style="font-weight: 600; color: var(--text-primary);">Margem de Contribuição</span>
+                        <span class="calc-result-value success" id="res-margem">0,00%</span>
+                    </div>
+                </div>
+
+            </div>
         </div>
 
     </div>
 
     <script>
-        // ── Estado global ──
+        // ── Tabs Navigation ──
+        function switchTab(tabId, btnElement) {
+            // Esconde todas as abas
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            // Mostra a aba clicada
+            document.getElementById(tabId).classList.add('active');
+            btnElement.classList.add('active');
+        }
+
+        // ── Calculadora Logic ──
+        function updateCalcFields() {
+            const marketplace = document.getElementById('calc-marketplace').value;
+            const precoStr = document.getElementById('calc-preco').value;
+            const preco = parseFloat(precoStr) || 0;
+            
+            if (marketplace === 'shopee') {
+                document.getElementById('fields-shopee').style.display = 'flex';
+                document.getElementById('fields-ml').style.display = 'none';
+            } else {
+                document.getElementById('fields-shopee').style.display = 'none';
+                document.getElementById('fields-ml').style.display = 'flex';
+                
+                // Hint dinâmico ML
+                const hint = document.getElementById('ml-fixa-hint');
+                if (preco >= 79) {
+                    hint.textContent = "Itens >= R$ 79: Insira o valor cobrado pelo Mercado Envios (Frete Grátis).";
+                } else {
+                    hint.textContent = "Itens < R$ 79: Taxa fixa padrão (R$ 6,00).";
+                }
+            }
+        }
+
+        function formatCurrency(val) {
+            return "R$ " + val.toFixed(2).replace('.', ',');
+        }
+
+        function calcularMargem() {
+            const marketplace = document.getElementById('calc-marketplace').value;
+            const preco = parseFloat(document.getElementById('calc-preco').value) || 0;
+            const custoProduto = parseFloat(document.getElementById('calc-custo').value) || 0;
+            const impostoPerc = parseFloat(document.getElementById('calc-imposto').value) || 0;
+            const embalagem = parseFloat(document.getElementById('calc-embalagem').value) || 0;
+
+            let taxaMarketplace = 0;
+
+            if (marketplace === 'shopee') {
+                const comissaoPerc = parseFloat(document.getElementById('calc-shopee-comissao').value) || 0;
+                let taxaFixa = parseFloat(document.getElementById('calc-shopee-taxa').value) || 0;
+                
+                // Calcula comissão com teto de R$100 da Shopee (aplicável sobre os 14% base, mas pra simplificar e deixar flexível, aplicamos sobre a % escolhida)
+                let comissaoCalculada = preco * (comissaoPerc / 100);
+                if (comissaoCalculada > 100) comissaoCalculada = 100; 
+                
+                taxaMarketplace = comissaoCalculada + taxaFixa;
+
+            } else if (marketplace === 'ml') {
+                updateCalcFields(); // Atualiza hint
+                const comissaoPerc = parseFloat(document.getElementById('calc-ml-comissao').value) || 0;
+                const taxaFixaFrete = parseFloat(document.getElementById('calc-ml-fixa').value) || 0;
+                
+                taxaMarketplace = (preco * (comissaoPerc / 100)) + taxaFixaFrete;
+            }
+
+            const custoImposto = preco * (impostoPerc / 100);
+            const custosTotais = custoProduto + custoImposto + embalagem + taxaMarketplace;
+            const lucroLiquido = preco - custosTotais;
+            const margem = preco > 0 ? (lucroLiquido / preco) * 100 : 0;
+
+            // Atualiza UI
+            document.getElementById('res-faturamento').textContent = formatCurrency(preco);
+            document.getElementById('res-custos').textContent = formatCurrency(custosTotais);
+            
+            const elLucro = document.getElementById('res-lucro');
+            elLucro.textContent = formatCurrency(lucroLiquido);
+            elLucro.className = 'calc-result-value ' + (lucroLiquido > 0 ? 'success' : (lucroLiquido < 0 ? 'error' : 'warning'));
+
+            const elMargem = document.getElementById('res-margem');
+            elMargem.textContent = margem.toFixed(2).replace('.', ',') + '%';
+            elMargem.className = 'calc-result-value ' + (margem > 15 ? 'success' : (margem > 0 ? 'warning' : 'error'));
+        }
+
+        // Run calculation on init
+        document.addEventListener('DOMContentLoaded', () => {
+            calcularMargem();
+        });
+
+        // ── Estado global Gerador ──
         let arquivoSelecionado = null;
         let jobId = null;
         let processando = false;
@@ -172,7 +361,6 @@
 
             progressPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-            // Passo 1: envia o arquivo via POST (somente se ainda não fez upload)
             try {
                 if (!jobId) {
                     adicionarLog(logBox, 'info', 'Enviando arquivo para o servidor...');
@@ -198,7 +386,6 @@
                 return;
             }
 
-            // Passo 2: abre o SSE com o job_id
             const evtSource = new EventSource(`/gerar/${modo}?job_id=${jobId}`);
 
             evtSource.onmessage = (event) => {

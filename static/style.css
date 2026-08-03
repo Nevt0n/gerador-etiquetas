@@ -77,10 +77,10 @@ body::after {
     z-index: 1;
 }
 
-/* ── Header ── */
+/* ── Header & Tabs ── */
 header {
     text-align: center;
-    padding: 56px 0 48px;
+    padding: 40px 0 24px;
 }
 
 .logo-icon {
@@ -117,6 +117,49 @@ header p {
     color: var(--text-secondary);
     font-size: 1rem;
     font-weight: 400;
+}
+
+.tabs {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 32px;
+}
+
+.tab-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 12px 24px;
+    border-radius: 99px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tab-btn:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
+.tab-btn.active {
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--purple-light);
+    border-color: rgba(139, 92, 246, 0.4);
+    box-shadow: 0 0 20px var(--purple-glow);
+}
+
+.tab-content {
+    display: none;
+    animation: fade-in 0.4s ease;
+}
+
+.tab-content.active {
+    display: block;
 }
 
 /* ── Upload Zone ── */
@@ -521,6 +564,123 @@ header p {
     background: linear-gradient(135deg, #4ade80, var(--success));
     box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3);
     transform: translateY(-2px);
+}
+
+/* ── Calculadora Margem ── */
+.calc-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+@media (max-width: 768px) {
+    .calc-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+.calc-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.calc-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.calc-form-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.calc-form-group select,
+.calc-form-group input {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: all var(--transition);
+}
+
+.calc-form-group select:focus,
+.calc-form-group input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.calc-form-group select option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.calc-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.calc-results {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-sm);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    border: 1px solid var(--border);
+}
+
+.calc-result-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.calc-result-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.calc-result-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.calc-result-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.calc-result-value.success {
+    color: var(--success);
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.calc-result-value.error {
+    color: var(--error);
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.calc-result-value.warning {
+    color: var(--warning);
+    font-size: 1.3rem;
+    font-weight: 700;
 }
 
 /* ── Responsivo ── */
