@@ -17,13 +17,14 @@
         <header>
             <div class="logo-icon">📦</div>
             <h1>Ferramentas do Vendedor</h1>
-            <p>Gerador de Etiquetas ZPL e Calculadora de Margem de Lucro</p>
+            <p>Gerador de Etiquetas ZPL, Calculadora de Margem & Extrator de Fotos</p>
         </header>
 
         <!-- Tabs Navigation -->
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('tab-etiquetas', this)">🏷️ Gerador de Etiquetas</button>
             <button class="tab-btn" onclick="switchTab('tab-calculadora', this)">💰 Calculadora de Margem</button>
+            <button class="tab-btn" onclick="switchTab('tab-extrator', this)">📸 Extrator de Fotos</button>
         </div>
 
         <!-- Tab 1: Gerador de Etiquetas -->
@@ -178,6 +179,94 @@
                     </div>
                 </div>
 
+        <!-- Tab 3: Extrator de Fotos -->
+        <div id="tab-extrator" class="tab-content">
+            <div class="extrator-container">
+                
+                <!-- Card de Busca -->
+                <div class="extrator-card">
+                    <div class="extrator-card-header">
+                        <h2>📸 Extrair Fotos de Anúncios</h2>
+                        <p>Cole o link do anúncio do Mercado Livre, Shopee ou de qualquer loja online para baixar as imagens em alta resolução.</p>
+                    </div>
+
+                    <div class="extrator-input-group">
+                        <div class="extrator-input-box">
+                            <span class="extrator-input-icon">🔗</span>
+                            <input type="text" id="extrator-url" placeholder="Cole o link do anúncio aqui (ex: https://produto.mercadolivre.com.br/MLB-...)" onkeydown="if(event.key==='Enter') buscarFotos()">
+                            <button class="extrator-clear-btn" id="extrator-clear-btn" onclick="limparInputExtrator()" title="Limpar">✕</button>
+                        </div>
+                        <button class="extrator-btn-buscar" id="btn-buscar-fotos" onclick="buscarFotos()">
+                            <span>🔍 Buscar Fotos</span>
+                        </button>
+                    </div>
+
+                    <!-- Marketplace Badges -->
+                    <div class="extrator-tags">
+                        <span class="tag-badge ml">🟡 Mercado Livre (HD Original)</span>
+                        <span class="tag-badge shopee">🟠 Shopee</span>
+                        <span class="tag-badge web">🌐 Lojas Virtuais / Código Fonte</span>
+                    </div>
+
+                    <!-- Dicas Shopee e Código Fonte -->
+                    <div class="extrator-tips-accordion">
+                        <button class="tips-toggle-btn" type="button" onclick="toggleTips()">
+                            <span>💡 Dicas para Shopee & Opção de Colar Código Fonte</span>
+                            <span id="tips-arrow">▼</span>
+                        </button>
+                        <div class="tips-content" id="tips-content" style="display: none;">
+                            <div class="tip-item">
+                                <strong>Opção 1 (Botão Mágico no Navegador):</strong>
+                                <p>Arraste este botão para a sua barra de favoritos do navegador:
+                                    <a class="bookmarklet-btn" href="javascript:(function(){var imgs=new Set();document.querySelectorAll('img').forEach(function(img){var src=img.src||img.getAttribute('data-src')||'';if(src.indexOf('susercontent.com')!==-1||src.indexOf('cf.shopee')!==-1||src.indexOf('mlstatic.com')!==-1){var clean=src.replace(/_tn$/,'').replace(/_tn\.[a-z]+$/,'').split('@')[0];imgs.add(clean);}});if(imgs.size===0){alert('Nenhuma foto de produto encontrada nesta página.');return;}var list=Array.from(imgs).join('\n');navigator.clipboard.writeText(list).then(function(){alert('✅ '+imgs.size+' fotos copiadas para a área de transferência!\n\nAgora volte para o Ferramentas do Vendedor e cole (Ctrl+V) no campo de busca.');}).catch(function(){prompt('Copie os links abaixo:',list);});})();" onclick="alert('Arraste este botão para a sua barra de favoritos do navegador!\nQuando estiver na página de um anúncio na Shopee, basta clicar no favorito para copiar todas as fotos instantaneamente.'); return false;">
+                                        ⭐ Copiar Fotos do Anúncio
+                                    </a>
+                                    Quando estiver na página do anúncio na Shopee, clique nesse favorito e depois basta dar <kbd>Ctrl + V</kbd> aqui no campo de busca!
+                                </p>
+                            </div>
+                            <div class="tip-item">
+                                <strong>Opção 2 (Colar Código Fonte):</strong>
+                                <p>Na página do anúncio na Shopee, aperte <kbd>Ctrl + U</kbd>, selecione tudo (<kbd>Ctrl + A</kbd>), copie (<kbd>Ctrl + C</kbd>) e cole direto no campo de busca acima!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Painel de Carregamento -->
+                <div class="extrator-loading" id="extrator-loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <span id="extrator-loading-text">Buscando anúncio e fotos em alta resolução...</span>
+                </div>
+
+                <!-- Painel de Erro -->
+                <div class="extrator-error" id="extrator-error" style="display: none;">
+                    <span class="error-icon">⚠️</span>
+                    <div class="error-msg" id="extrator-error-msg"></div>
+                </div>
+
+                <!-- Resultados -->
+                <div class="extrator-results" id="extrator-results" style="display: none;">
+                    <div class="results-header">
+                        <div class="results-info">
+                            <h3 id="resultado-titulo">Título do Produto</h3>
+                            <span class="results-count" id="resultado-count">0 fotos encontradas</span>
+                        </div>
+                        <div class="results-actions">
+                            <label class="select-all-label">
+                                <input type="checkbox" id="check-selecionar-todas" onchange="toggleSelecionarTodas(this.checked)" checked>
+                                <span>Selecionar Todas</span>
+                            </label>
+                            <button class="btn-download-zip" id="btn-download-zip" onclick="baixarSelecionadasZip()">
+                                <span>⬇️ Baixar Selecionadas (.ZIP)</span>
+                                <span class="zip-count-badge" id="zip-count-badge">(0)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Grid de Fotos -->
+                    <div class="fotos-grid" id="fotos-grid"></div>
+                </div>
+
             </div>
         </div>
 
@@ -267,9 +356,25 @@
             elMargem.className = 'calc-result-value ' + (margem > 15 ? 'success' : (margem > 0 ? 'warning' : 'error'));
         }
 
-        // Run calculation on init
+        // Run calculation on init & check URL parameters
         document.addEventListener('DOMContentLoaded', () => {
             calcularMargem();
+
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('aba') === 'extrator' || params.get('url') || params.get('fotos')) {
+                const extratorBtn = document.querySelectorAll('.tab-btn')[2];
+                if (extratorBtn) {
+                    switchTab('tab-extrator', extratorBtn);
+                }
+                const urlParam = params.get('url') || params.get('fotos');
+                if (urlParam) {
+                    const inputEl = document.getElementById('extrator-url');
+                    if (inputEl) {
+                        inputEl.value = urlParam;
+                        buscarFotos();
+                    }
+                }
+            }
         });
 
         // ── Estado global Gerador ──
@@ -460,6 +565,185 @@
             document.getElementById('btn-produto').disabled = false;
             document.getElementById('btn-volume').disabled = false;
             processando = false;
+        }
+
+        // ── Extrator de Fotos Logic ──
+        let imagensExtraidas = [];
+        let tituloAnuncio = '';
+
+        function toggleTips() {
+            const content = document.getElementById('tips-content');
+            const arrow = document.getElementById('tips-arrow');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                arrow.textContent = '▲';
+            } else {
+                content.style.display = 'none';
+                arrow.textContent = '▼';
+            }
+        }
+
+        function limparInputExtrator() {
+            const input = document.getElementById('extrator-url');
+            input.value = '';
+            input.focus();
+        }
+
+        async function buscarFotos() {
+            const inputEl = document.getElementById('extrator-url');
+            const valor = inputEl.value.trim();
+            if (!valor) {
+                alert('Por favor, cole um link ou código de anúncio.');
+                return;
+            }
+
+            const loadingEl = document.getElementById('extrator-loading');
+            const errorEl = document.getElementById('extrator-error');
+            const resultsEl = document.getElementById('extrator-results');
+            const btnBuscar = document.getElementById('btn-buscar-fotos');
+
+            loadingEl.style.display = 'flex';
+            errorEl.style.display = 'none';
+            resultsEl.style.display = 'none';
+            btnBuscar.disabled = true;
+
+            try {
+                const resp = await fetch('/extrair-fotos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: valor })
+                });
+                const data = await resp.json();
+
+                if (!resp.ok || !data.sucesso) {
+                    throw new Error(data.erro || 'Falha ao extrair imagens');
+                }
+
+                imagensExtraidas = data.imagens || [];
+                tituloAnuncio = data.titulo || 'fotos_anuncio';
+                renderizarResultados(data);
+
+            } catch (err) {
+                document.getElementById('extrator-error-msg').textContent = err.message;
+                errorEl.style.display = 'flex';
+                // Abre as dicas se for erro da Shopee
+                if (err.message.includes('Shopee') || valor.includes('shopee.com')) {
+                    document.getElementById('tips-content').style.display = 'block';
+                    document.getElementById('tips-arrow').textContent = '▲';
+                }
+            } finally {
+                loadingEl.style.display = 'none';
+                btnBuscar.disabled = false;
+            }
+        }
+
+        function renderizarResultados(data) {
+            const resultsEl = document.getElementById('extrator-results');
+            const tituloEl = document.getElementById('resultado-titulo');
+            const countEl = document.getElementById('resultado-count');
+            const gridEl = document.getElementById('fotos-grid');
+
+            tituloEl.textContent = data.titulo;
+            countEl.textContent = `${data.total} foto(s) encontrada(s)`;
+            gridEl.innerHTML = '';
+
+            data.imagens.forEach((img, idx) => {
+                const card = document.createElement('div');
+                card.className = 'foto-card';
+                card.dataset.index = idx;
+
+                const numFormatado = String(idx + 1).padStart(2, '0');
+                const nomeDownload = `foto_${numFormatado}.jpg`;
+
+                card.innerHTML = `
+                    <div class="foto-card-top">
+                        <label class="foto-checkbox-label" title="Selecionar para baixar no ZIP">
+                            <input type="checkbox" class="foto-check" data-url="${img.url}" checked onchange="atualizarContadorSelecao()">
+                            <span class="custom-check"></span>
+                        </label>
+                        <span class="foto-badge">#${idx + 1}</span>
+                    </div>
+                    <div class="foto-img-wrap" onclick="window.open('${img.url}', '_blank')">
+                        <img src="${img.thumb || img.url}" alt="Foto ${idx + 1}" loading="lazy" onerror="this.src='${img.url}'">
+                    </div>
+                    <div class="foto-card-actions">
+                        <a href="/baixar-foto?url=${encodeURIComponent(img.url)}&nome=${encodeURIComponent(nomeDownload)}" class="btn-foto-baixar" title="Baixar esta foto no seu computador">
+                            ⬇️ Baixar
+                        </a>
+                        <a href="${img.url}" target="_blank" rel="noopener noreferrer" class="btn-foto-ver" title="Abrir imagem em tamanho original">
+                            🔗 Ver
+                        </a>
+                    </div>
+                `;
+                gridEl.appendChild(card);
+            });
+
+            document.getElementById('check-selecionar-todas').checked = true;
+            atualizarContadorSelecao();
+            resultsEl.style.display = 'block';
+            resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function toggleSelecionarTodas(checked) {
+            document.querySelectorAll('.foto-check').forEach(chk => chk.checked = checked);
+            atualizarContadorSelecao();
+        }
+
+        function atualizarContadorSelecao() {
+            const checks = document.querySelectorAll('.foto-check:checked');
+            const totalChecks = document.querySelectorAll('.foto-check');
+            const badge = document.getElementById('zip-count-badge');
+            const btnZip = document.getElementById('btn-download-zip');
+            const chkTodas = document.getElementById('check-selecionar-todas');
+
+            badge.textContent = `(${checks.length})`;
+            btnZip.disabled = checks.length === 0;
+            chkTodas.checked = (checks.length === totalChecks.length && totalChecks.length > 0);
+        }
+
+        async function baixarSelecionadasZip() {
+            const checks = document.querySelectorAll('.foto-check:checked');
+            if (checks.length === 0) {
+                alert('Selecione pelo menos uma foto para baixar.');
+                return;
+            }
+
+            const urls = Array.from(checks).map(chk => chk.dataset.url);
+            const btnZip = document.getElementById('btn-download-zip');
+            const originalContent = btnZip.innerHTML;
+
+            btnZip.disabled = true;
+            btnZip.innerHTML = '<span>⏳ Gerando ZIP...</span>';
+
+            try {
+                const resp = await fetch('/baixar-zip', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imagens: urls, titulo: tituloAnuncio })
+                });
+
+                if (!resp.ok) {
+                    throw new Error('Falha ao baixar o arquivo ZIP');
+                }
+
+                const blob = await resp.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                const safeName = tituloAnuncio.substring(0, 40).replace(/[^a-zA-Z0-9_-]/g, '_');
+                a.download = `${safeName || 'fotos'}_fotos.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(downloadUrl);
+
+            } catch (err) {
+                alert('Erro ao gerar ZIP: ' + err.message);
+            } finally {
+                btnZip.disabled = false;
+                btnZip.innerHTML = originalContent;
+                atualizarContadorSelecao();
+            }
         }
     </script>
 </body>

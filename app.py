@@ -10,8 +10,11 @@ from flask import Flask, render_template, request, Response, stream_with_context
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
 
+import io
+import requests
 import Produto
 import Volume
+import Extrator
 
 app = Flask(__name__)
 
@@ -116,6 +119,66 @@ def download(nome_arquivo):
     return send_file(caminho, as_attachment=True, download_name=nome_arquivo)
 
 
+# ── Extrator de Fotos ──────────────────────────────────────────────────────────
+@app.route('/extrair-fotos', methods=['POST'])
+def rota_extrair_fotos():
+    dados = request.get_json(silent=True) or {}
+    url = dados.get('url', '').strip()
+    if not url:
+        url = request.form.get('url', '').strip()
+
+    if not url:
+        return json.dumps({'sucesso': False, 'erro': 'Nenhum link ou código fornecido.'}, ensure_ascii=False), 400, {'Content-Type': 'application/json; charset=utf-8'}
+
+    resultado = Extrator.processar_extracao(url)
+    status_code = 200 if resultado.get('sucesso') else 400
+    return json.dumps(resultado, ensure_ascii=False), status_code, {'Content-Type': 'application/json; charset=utf-8'}
+
+
+@app.route('/baixar-zip', methods=['POST'])
+def rota_baixar_zip():
+    dados = request.get_json(silent=True) or {}
+    imagens = dados.get('imagens', [])
+    titulo = dados.get('titulo', 'fotos_anuncio')
+
+    if not imagens:
+        return "Nenhuma imagem selecionada para download", 400
+
+    zip_bytes, count = Extrator.gerar_zip(imagens, titulo)
+    if not zip_bytes or count == 0:
+        return "Falha ao gerar o arquivo ZIP", 500
+
+    nome_arquivo = f"{Extrator.limpar_nome_arquivo(titulo)}.zip"
+    return send_file(
+        io.BytesIO(zip_bytes),
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=nome_arquivo
+    )
+
+
+@app.route('/baixar-foto')
+def rota_baixar_foto():
+    url = request.args.get('url', '')
+    nome = request.args.get('nome', 'foto.jpg')
+    if not url or not url.startswith('http'):
+        return "URL inválida", 400
+
+    try:
+        r = requests.get(url, headers={'User-Agent': Extrator.USER_AGENTS['browser']}, timeout=15)
+        if r.status_code == 200:
+            mimetype = r.headers.get('content-type', 'image/jpeg')
+            return send_file(
+                io.BytesIO(r.content),
+                mimetype=mimetype,
+                as_attachment=True,
+                download_name=nome
+            )
+        return "Erro ao carregar imagem", r.status_code
+    except Exception as e:
+        return f"Erro: {str(e)}", 500
+
+
 # ── Página principal ───────────────────────────────────────────────────────────
 @app.route('/')
 def index():
@@ -125,7 +188,7 @@ def index():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print("=" * 50)
-    print("  Ferramentas do Vendedor (Gerador ZPL + Calculadora)")
+    print("  Ferramentas do Vendedor (Etiquetas + Calculadora + Extrator)")
     print(f"  Acesse: http://localhost:{port}")
     print("=" * 50)
     app.run(debug=False, host='0.0.0.0', port=port)
