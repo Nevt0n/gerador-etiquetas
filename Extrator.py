@@ -38,7 +38,7 @@ def normalizar_ml_url(u):
     return hd, hd, thumb
 
 def extrair_mercadolivre(url, html_text=None):
-    """Extrai fotos em alta resolução do Mercado Livre."""
+    """Extrai fotos em alta resolução estritamente da galeria do anúncio do Mercado Livre."""
     if not html_text:
         headers = {
             'User-Agent': USER_AGENTS['googlebot'],
@@ -67,69 +67,51 @@ def extrair_mercadolivre(url, html_text=None):
     imagens = []
     seen_ids = set()
 
-    # 1. Regex ampla para capturar URLs completas de mlstatic D_
-    ml_urls = re.findall(r'https?://(?:http2\.)?mlstatic\.com/D_[^\s"\'<>\)]+', cleaned_html)
-    for u in ml_urls:
-        pic_id, hd, thumb = normalizar_ml_url(u)
-        if pic_id not in seen_ids:
-            seen_ids.add(pic_id)
-            imagens.append({'id': pic_id, 'url': hd, 'thumb': thumb})
+    # REGRA ESTRITA: Extrair APENAS da galeria do anúncio (.ui-pdp-gallery)
+    ml_gallery = soup.find(class_=re.compile(r'ui-pdp-gallery'))
+    if ml_gallery:
+        for img in ml_gallery.find_all('img'):
+            src = img.get('data-zoom') or img.get('src') or img.get('data-src') or ''
+            if src and 'mlstatic.com/D_' in src:
+                pic_id, hd, thumb = normalizar_ml_url(src)
+                if pic_id not in seen_ids:
+                    seen_ids.add(pic_id)
+                    imagens.append({'id': pic_id, 'url': hd, 'thumb': thumb})
 
-    # 2. Regex específica para IDs de imagens padrão mlstatic
-    matches = re.findall(r'([0-9]{4,}-ML[A-Z][0-9]{6,}(?:_[0-9]{4,})?)', cleaned_html)
-    for pic_id in matches:
-        if pic_id not in seen_ids:
-            seen_ids.add(pic_id)
-            imagens.append({
-                'id': pic_id,
-                'url': f"https://http2.mlstatic.com/D_NQ_NP_2X_{pic_id}-F.jpg",
-                'thumb': f"https://http2.mlstatic.com/D_Q_NP_{pic_id}-V.webp"
-            })
+    # Se não achou na tag .ui-pdp-gallery, busca no Schema JSON-LD de Product (estritamente do produto)
+    if not imagens:
+        for script in soup.find_all('script', type='application/ld+json'):
+            try:
+                data = json.loads(script.string)
+                if isinstance(data, dict) and data.get('@type') == 'Product':
+                    imgs = data.get('image', [])
+                    if isinstance(imgs, str):
+                        imgs = [imgs]
+                    for im in imgs:
+                        if isinstance(im, str) and 'mlstatic.com/D_' in im:
+                            pic_id, hd, thumb = normalizar_ml_url(im)
+                            if pic_id not in seen_ids:
+                                seen_ids.add(pic_id)
+                                imagens.append({'id': pic_id, 'url': hd, 'thumb': thumb})
+            except Exception:
+                pass
 
-    # 3. JSON-LD Schema
-    for script in soup.find_all('script', type='application/ld+json'):
-        try:
-            data = json.loads(script.string)
-            if isinstance(data, dict):
-                imgs = data.get('image', [])
-                if isinstance(imgs, str):
-                    imgs = [imgs]
-                for im in imgs:
-                    m = re.search(r'([0-9]{4,}-ML[A-Z][0-9]{6,}(?:_[0-9]{4,})?)', im)
-                    if m and m.group(1) not in seen_ids:
-                        pic_id = m.group(1)
-                        seen_ids.add(pic_id)
-                        imagens.append({
-                            'id': pic_id,
-                            'url': f"https://http2.mlstatic.com/D_NQ_NP_2X_{pic_id}-F.jpg",
-                            'thumb': f"https://http2.mlstatic.com/D_Q_NP_{pic_id}-V.webp"
-                        })
-                    elif not m and im.startswith('http') and im not in [x['url'] for x in imagens]:
-                        imagens.append({'id': str(len(imagens)+1), 'url': im, 'thumb': im})
-        except Exception:
-            pass
-
-    # 4. OpenGraph meta tag (Capa)
-    og_img = soup.find('meta', property='og:image')
-    if og_img and og_img.get('content'):
-        content = og_img['content']
-        m = re.search(r'([0-9]{4,}-ML[A-Z][0-9]{6,}(?:_[0-9]{4,})?)', content)
-        if m and m.group(1) not in seen_ids:
-            pic_id = m.group(1)
-            seen_ids.add(pic_id)
-            imagens.append({
-                'id': pic_id,
-                'url': f"https://http2.mlstatic.com/D_NQ_NP_2X_{pic_id}-F.jpg",
-                'thumb': f"https://http2.mlstatic.com/D_Q_NP_{pic_id}-V.webp"
-            })
-        elif not m and content.startswith('http') and content not in [x['url'] for x in imagens]:
-            imagens.append({'id': str(len(imagens)+1), 'url': content, 'thumb': content})
+    # Se ainda assim não achou e tem og:image, pega apenas a capa
+    if not imagens:
+        og_img = soup.find('meta', property='og:image')
+        if og_img and og_img.get('content'):
+            content = og_img['content']
+            if 'mlstatic.com/D_' in content:
+                pic_id, hd, thumb = normalizar_ml_url(content)
+                if pic_id not in seen_ids:
+                    seen_ids.add(pic_id)
+                    imagens.append({'id': pic_id, 'url': hd, 'thumb': thumb})
 
     return titulo, imagens, None
 
 
 def extrair_generico(url, html_text=None):
-    """Extrai imagens de qualquer site geral ou e-commerce."""
+    """Extrai imagens estritamente da galeria principal de qualquer site ou e-commerce."""
     if not html_text:
         headers = {
             'User-Agent': USER_AGENTS['browser'],
@@ -154,24 +136,11 @@ def extrair_generico(url, html_text=None):
     imagens = []
     seen = set()
 
-    # 1. OpenGraph e Twitter image
-    for meta_prop in ['og:image', 'og:image:secure_url', 'twitter:image']:
-        for tag in soup.find_all('meta', property=meta_prop):
-            u = tag.get('content')
-            if u and u.startswith('http') and u not in seen:
-                seen.add(u)
-                imagens.append({'id': str(len(imagens)+1), 'url': u, 'thumb': u})
-        for tag in soup.find_all('meta', attrs={'name': meta_prop}):
-            u = tag.get('content')
-            if u and u.startswith('http') and u not in seen:
-                seen.add(u)
-                imagens.append({'id': str(len(imagens)+1), 'url': u, 'thumb': u})
-
-    # 2. JSON-LD Schema
+    # 1. Procura primeiro Schema JSON-LD de Product (padrão confiável para produto específico)
     for script in soup.find_all('script', type='application/ld+json'):
         try:
             data = json.loads(script.string)
-            if isinstance(data, dict):
+            if isinstance(data, dict) and data.get('@type') == 'Product':
                 candidates = data.get('image', [])
                 if isinstance(candidates, str):
                     candidates = [candidates]
@@ -183,8 +152,27 @@ def extrair_generico(url, html_text=None):
         except Exception:
             pass
 
-    # 3. Tags <img> relevantes
-    for img in soup.find_all('img'):
+    # Se achou fotos no Schema do produto, retorna imediatamente sem pegar carrosséis da página
+    if imagens:
+        return titulo, imagens, None
+
+    # 2. Descarta blocos de produtos relacionados, footer, avaliações
+    for unwanted in soup.find_all(class_=re.compile(r'recommendation|carousel|related|similar|reviews|comments|footer|header|banner|sidebar')):
+        if not unwanted or not getattr(unwanted, 'attrs', None):
+            continue
+        classes = unwanted.attrs.get('class', [])
+        class_str = " ".join(classes) if isinstance(classes, list) else str(classes)
+        if 'product-gallery' not in class_str and 'woocommerce-product-gallery' not in class_str:
+            try:
+                unwanted.decompose()
+            except Exception:
+                pass
+
+    # 3. Procura container de galeria do produto
+    gallery_container = soup.find(class_=re.compile(r'woocommerce-product-gallery|product-gallery|product-images|product-photos|photoswipe'))
+    target = gallery_container or soup
+
+    for img in target.find_all('img'):
         src = img.get('data-zoom') or img.get('data-large-img') or img.get('data-src') or img.get('src')
         if not src:
             continue
@@ -192,7 +180,6 @@ def extrair_generico(url, html_text=None):
         if not full_url.startswith('http'):
             continue
 
-        # Ignorar logos, rastreadores, ícones pequenos
         low = full_url.lower()
         if any(ign in low for ign in ['logo', 'icon', 'pixel', 'avatar', 'badge', 'banner', 'footer', 'header', '.svg', 'favicon']):
             continue
@@ -201,73 +188,162 @@ def extrair_generico(url, html_text=None):
             seen.add(full_url)
             imagens.append({'id': str(len(imagens)+1), 'url': full_url, 'thumb': full_url})
 
+    # 4. OpenGraph como fallback se nenhuma foto da galeria foi achada
+    if not imagens:
+        for meta_prop in ['og:image', 'og:image:secure_url', 'twitter:image']:
+            for tag in soup.find_all('meta', property=meta_prop):
+                u = tag.get('content')
+                if u and u.startswith('http') and u not in seen:
+                    seen.add(u)
+                    imagens.append({'id': str(len(imagens)+1), 'url': u, 'thumb': u})
+
     return titulo, imagens, None
 
 
 def extrair_texto_bruto(texto):
-    """Extrai imagens de texto colado (HTML bruto, código-fonte Ctrl+U ou lista de URLs)."""
-    # Desescapa barras e unicode comum em JSON embutido
+    """Extrai imagens estritamente da galeria do anúncio (HTML bruto, Ctrl+U ou links)."""
     cleaned_text = texto.replace(r'\/', '/').replace(r'\u002F', '/')
-
-    # Tenta descobrir o título se for HTML
-    titulo = "Fotos Extraídas do Anúncio"
-    if '<html' in cleaned_text.lower() or '<head' in cleaned_text.lower() or '<h1' in cleaned_text.lower():
-        try:
-            soup = BeautifulSoup(cleaned_text[:50000], 'html.parser')
-            h1 = soup.find('h1') or soup.find('title')
-            if h1 and h1.text.strip():
-                t = h1.text.strip()
-                t = re.sub(r'\s*[\-–\|].*$', '', t).strip()
-                if t:
-                    titulo = t[:80]
-        except Exception:
-            pass
-
     imagens = []
     seen = set()
+    titulo = "Fotos do Anúncio"
 
-    # 1. Mercado Livre mlstatic URLs completas
-    ml_urls = re.findall(r'https?://(?:http2\.)?mlstatic\.com/D_[^\s"\'<>\)]+', cleaned_text)
-    for u in ml_urls:
-        pic_id, hd, thumb = normalizar_ml_url(u)
-        if pic_id not in seen:
-            seen.add(pic_id)
-            imagens.append({'id': pic_id, 'url': hd, 'thumb': thumb})
+    is_html = ('<html' in cleaned_text.lower() or '<head' in cleaned_text.lower() or '<div' in cleaned_text.lower() or '<body' in cleaned_text.lower())
 
-    # 2. Mercado Livre IDs soltos
-    ml_matches = re.findall(r'([0-9]{4,}-ML[A-Z][0-9]{6,}(?:_[0-9]{4,})?)', cleaned_text)
-    for ml_id in ml_matches:
-        if ml_id not in seen:
-            seen.add(ml_id)
-            imagens.append({
-                'id': ml_id,
-                'url': f"https://http2.mlstatic.com/D_NQ_NP_2X_{ml_id}-F.jpg",
-                'thumb': f"https://http2.mlstatic.com/D_Q_NP_{ml_id}-V.webp"
-            })
+    if is_html:
+        soup = BeautifulSoup(cleaned_text, 'html.parser')
+        
+        # 1. Título do anúncio
+        h1 = soup.find('h1') or soup.find('title')
+        if h1 and h1.text.strip():
+            t = re.sub(r'\s*[\-–\|].*$', '', h1.text.strip()).strip()
+            if t: titulo = t[:80]
 
-    # 3. Shopee susercontent ou cf.shopee
-    shopee_matches = re.findall(r'(?:susercontent\.com|cf\.shopee\.com\.br)/file/([a-zA-Z0-9_-]+)', cleaned_text)
-    for sh_id in shopee_matches:
-        clean_id = re.sub(r'_tn.*$', '', sh_id)
-        if clean_id not in seen and len(clean_id) >= 16:
-            seen.add(clean_id)
-            u = f"https://down-br.img.susercontent.com/file/{clean_id}"
-            imagens.append({
-                'id': clean_id,
-                'url': u,
-                'thumb': f"{u}_tn"
-            })
+        # 2. Remove blocos que sabidamente NÃO pertencem ao anúncio
+        # (mas NUNCA remove elementos que estejam dentro da galeria do anúncio)
+        for unwanted in soup.find_all(class_=re.compile(r'recommendation|related|similar|reviews|comments|buyer|ratings|footer|header|banner|sidebar|cross-sells|upsells')):
+            if not unwanted or not getattr(unwanted, 'attrs', None):
+                continue
+            # Se o elemento estiver dentro da galeria do anúncio, preserva
+            if unwanted.find_parent(class_=re.compile(r'ui-pdp-gallery|product-briefing|product-gallery|woocommerce-product-gallery')):
+                continue
+            classes = unwanted.attrs.get('class', [])
+            class_str = " ".join(classes) if isinstance(classes, list) else str(classes)
+            if 'ui-pdp-gallery' not in class_str and 'product-briefing' not in class_str and 'product-gallery' not in class_str and 'product-images' not in class_str:
+                try:
+                    unwanted.decompose()
+                except Exception:
+                    pass
 
-    # 4. URLs genéricas de imagem terminando em jpg, png, webp
-    seen_urls = {im['url'] for im in imagens}
-    gen_matches = re.findall(r'https?://[^\s"\'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"\'<>]*)?', cleaned_text)
-    for g_url in gen_matches:
-        low = g_url.lower()
-        if any(ign in low for ign in ['logo', 'icon', 'pixel', 'avatar', 'badge', 'banner', 'footer', 'header', '.svg', 'favicon', 'splash', 'assets']):
-            continue
-        if g_url not in seen_urls and not any(k in g_url for k in seen):
-            seen_urls.add(g_url)
-            imagens.append({'id': str(len(imagens)+1), 'url': g_url, 'thumb': g_url})
+        # 3. REGRA ESTRITA POR MARKETPLACE
+        # Mercado Livre: busca exclusivamente dentro de .ui-pdp-gallery
+        ml_gallery = soup.find(class_=re.compile(r'ui-pdp-gallery'))
+        if ml_gallery:
+            for img in ml_gallery.find_all('img'):
+                src = img.get('data-zoom') or img.get('src') or img.get('data-src') or ''
+                if src and 'mlstatic.com/D_' in src:
+                    pic_id, hd, thumb = normalizar_ml_url(src)
+                    if pic_id not in seen:
+                        seen.add(pic_id)
+                        imagens.append({'id': pic_id, 'url': hd, 'thumb': thumb})
+
+        # Shopee: busca exclusivamente dentro de .product-briefing
+        shopee_gallery = soup.find(class_=re.compile(r'product-briefing|page-product__detail'))
+        if shopee_gallery and not imagens:
+            for img in shopee_gallery.find_all('img'):
+                src = img.get('src') or img.get('data-src') or ''
+                if src and ('susercontent.com/file/' in src or 'cf.shopee.com.br/file/' in src):
+                    m = re.search(r'(?:susercontent\.com|cf\.shopee\.com\.br)/file/([a-zA-Z0-9_-]+)', src)
+                    if m:
+                        clean_id = re.sub(r'_tn.*$', '', m.group(1))
+                        if len(clean_id) >= 16 and clean_id not in seen:
+                            seen.add(clean_id)
+                            u = f"https://down-br.img.susercontent.com/file/{clean_id}"
+                            imagens.append({'id': clean_id, 'url': u, 'thumb': f"{u}_tn"})
+
+        # Lojas gerais: busca na galeria do produto
+        if not imagens:
+            gen_gallery = soup.find(class_=re.compile(r'woocommerce-product-gallery|product-gallery|product-images|product-photos|photoswipe'))
+            if gen_gallery:
+                for img in gen_gallery.find_all('img'):
+                    src = img.get('data-zoom') or img.get('data-large-img') or img.get('src') or img.get('data-src') or ''
+                    if src and src.startswith('http') and not any(ign in src.lower() for ign in ['logo', 'icon', 'pixel', 'avatar', '.svg']):
+                        if src not in seen:
+                            seen.add(src)
+                            imagens.append({'id': str(len(imagens)+1), 'url': src, 'thumb': src})
+
+        # 4. Schema JSON-LD de Product (apenas fotos do produto anunciado)
+        if not imagens:
+            for s in soup.find_all('script', type='application/ld+json'):
+                try:
+                    data = json.loads(s.string)
+                    if isinstance(data, dict) and data.get('@type') == 'Product':
+                        imgs = data.get('image', [])
+                        if isinstance(imgs, str): imgs = [imgs]
+                        for im in imgs:
+                            if isinstance(im, str):
+                                if 'mlstatic.com/D_' in im:
+                                    pic_id, hd, thumb = normalizar_ml_url(im)
+                                    if pic_id not in seen:
+                                        seen.add(pic_id)
+                                        imagens.append({'id': pic_id, 'url': hd, 'thumb': thumb})
+                                elif 'susercontent.com/file/' in im:
+                                    m = re.search(r'susercontent\.com/file/([a-zA-Z0-9_-]+)', im)
+                                    if m:
+                                        clean_id = re.sub(r'_tn.*$', '', m.group(1))
+                                        if clean_id not in seen:
+                                            seen.add(clean_id)
+                                            u = f"https://down-br.img.susercontent.com/file/{clean_id}"
+                                            imagens.append({'id': clean_id, 'url': u, 'thumb': f"{u}_tn"})
+                                elif im.startswith('http') and im not in seen:
+                                    seen.add(im)
+                                    imagens.append({'id': str(len(imagens)+1), 'url': im, 'thumb': im})
+                except Exception:
+                    pass
+
+        # 5. Estado JSON interno específico do anúncio (Shopee item.images ou ML gallery.pictures)
+        if not imagens:
+            m_shopee_state = re.search(r'"item"\s*:\s*\{[^\}]*"images"\s*:\s*\[([^\]]+)\]', cleaned_text)
+            if m_shopee_state:
+                hashes = re.findall(r'"([a-zA-Z0-9_-]{16,})"', m_shopee_state.group(1))
+                for h in hashes:
+                    if h not in seen:
+                        seen.add(h)
+                        u = f"https://down-br.img.susercontent.com/file/{h}"
+                        imagens.append({'id': h, 'url': u, 'thumb': f"{u}_tn"})
+
+            m_ml_state = re.search(r'"gallery"\s*:\s*\{[^\}]*"pictures"\s*:\s*\[([^\]]+)\]', cleaned_text)
+            if m_ml_state:
+                urls = re.findall(r'"(https?://http2\.mlstatic\.com/D_[^"]+)"', m_ml_state.group(1))
+                for u in urls:
+                    pic_id, hd, thumb = normalizar_ml_url(u)
+                    if pic_id not in seen:
+                        seen.add(pic_id)
+                        imagens.append({'id': pic_id, 'url': hd, 'thumb': thumb})
+
+    else:
+        # Texto colado que NÃO é HTML (ex: lista direta de URLs)
+        for u in re.findall(r'https?://(?:http2\.)?mlstatic\.com/D_[^\s"\'<>\)]+', cleaned_text):
+            pic_id, hd, thumb = normalizar_ml_url(u)
+            if pic_id not in seen:
+                seen.add(pic_id)
+                imagens.append({'id': pic_id, 'url': hd, 'thumb': thumb})
+
+        for u in re.findall(r'(?:susercontent\.com|cf\.shopee\.com\.br)/file/([a-zA-Z0-9_-]+)', cleaned_text):
+            clean_id = re.sub(r'_tn.*$', '', u)
+            if len(clean_id) >= 16 and clean_id not in seen:
+                seen.add(clean_id)
+                img_url = f"https://down-br.img.susercontent.com/file/{clean_id}"
+                imagens.append({'id': clean_id, 'url': img_url, 'thumb': f"{img_url}_tn"})
+
+        seen_urls = {im['url'] for im in imagens}
+        gen_matches = re.findall(r'https?://[^\s"\'<>]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s"\'<>]*)?', cleaned_text)
+        for g_url in gen_matches:
+            low = g_url.lower()
+            if any(ign in low for ign in ['logo', 'icon', 'pixel', 'avatar', 'badge', 'banner', 'footer', 'header', '.svg', 'favicon', 'splash', 'assets']):
+                continue
+            if g_url not in seen_urls and not any(k in g_url for k in seen):
+                seen_urls.add(g_url)
+                imagens.append({'id': str(len(imagens)+1), 'url': g_url, 'thumb': g_url})
 
     return titulo, imagens, None
 
