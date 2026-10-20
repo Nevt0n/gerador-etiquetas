@@ -196,9 +196,12 @@
                     <div class="extrator-input-group">
                         <div class="extrator-input-box">
                             <span class="extrator-input-icon">🔗</span>
-                            <input type="text" id="extrator-url" placeholder="Cole o link do anúncio aqui (ex: https://produto.mercadolivre.com.br/MLB-...)" onkeydown="if(event.key==='Enter') buscarFotos()">
+                            <input type="text" id="extrator-url" placeholder="Cole o link do anúncio ou código-fonte Ctrl+U aqui..." onkeydown="if(event.key==='Enter') buscarFotos()">
                             <button class="extrator-clear-btn" id="extrator-clear-btn" onclick="limparInputExtrator()" title="Limpar">✕</button>
                         </div>
+                        <button class="extrator-btn-colar" id="btn-colar-fotos" type="button" onclick="colarDoClipboard()" title="Colar da área de transferência">
+                            <span>📋 Colar</span>
+                        </button>
                         <button class="extrator-btn-buscar" id="btn-buscar-fotos" onclick="buscarFotos()">
                             <span>🔍 Buscar Fotos</span>
                         </button>
@@ -211,25 +214,33 @@
                         <span class="tag-badge web">🌐 Lojas Virtuais / Código Fonte</span>
                     </div>
 
-                    <!-- Dicas Shopee e Código Fonte -->
+                    <!-- Dicas e Botão Mágico dos Favoritos -->
                     <div class="extrator-tips-accordion">
                         <button class="tips-toggle-btn" type="button" onclick="toggleTips()">
-                            <span>💡 Dicas para Shopee & Opção de Colar Código Fonte</span>
+                            <span>⚡ <strong>Como pegar TODAS as fotos em 1 clique</strong> (Mercado Livre, Shopee & Lojas)</span>
                             <span id="tips-arrow">▼</span>
                         </button>
-                        <div class="tips-content" id="tips-content" style="display: none;">
+                        <div class="tips-content" id="tips-content" style="display: block;">
                             <div class="tip-item">
-                                <strong>Opção 1 (Botão Mágico no Navegador):</strong>
-                                <p>Arraste este botão para a sua barra de favoritos do navegador:
-                                    <a class="bookmarklet-btn" href="javascript:(function(){var imgs=new Set();document.querySelectorAll('img').forEach(function(img){var src=img.src||img.getAttribute('data-src')||'';if(src.indexOf('susercontent.com')!==-1||src.indexOf('cf.shopee')!==-1||src.indexOf('mlstatic.com')!==-1){var clean=src.replace(/_tn$/,'').replace(/_tn\.[a-z]+$/,'').split('@')[0];imgs.add(clean);}});if(imgs.size===0){alert('Nenhuma foto de produto encontrada nesta página.');return;}var list=Array.from(imgs).join('\n');navigator.clipboard.writeText(list).then(function(){alert('✅ '+imgs.size+' fotos copiadas para a área de transferência!\n\nAgora volte para o Ferramentas do Vendedor e cole (Ctrl+V) no campo de busca.');}).catch(function(){prompt('Copie os links abaixo:',list);});})();" onclick="alert('Arraste este botão para a sua barra de favoritos do navegador!\nQuando estiver na página de um anúncio na Shopee, basta clicar no favorito para copiar todas as fotos instantaneamente.'); return false;">
-                                        ⭐ Copiar Fotos do Anúncio
-                                    </a>
-                                    Quando estiver na página do anúncio na Shopee, clique nesse favorito e depois basta dar <kbd>Ctrl + V</kbd> aqui no campo de busca!
+                                <strong>Opção 1 — Botão Mágico nos Favoritos (Recomendado):</strong>
+                                <p style="margin-bottom: 8px;">
+                                    Como o Mercado Livre e a Shopee bloqueiam robôs externos de acessar a galeria de fotos de fora, este botão lê as fotos direto da sua tela com 1 clique e abre esta ferramenta com todas as fotos prontas para baixar em ZIP!
                                 </p>
+                                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px;">
+                                    <a class="bookmarklet-btn" id="link-bookmarklet" href="javascript:(function(){var imgs=new Set();var host=window.location.hostname.toLowerCase();var h1=document.querySelector('h1');var titulo=(h1&&h1.innerText.trim())?h1.innerText.trim():(document.title.replace(/[\-–\|].*$/,'').trim()||'fotos_anuncio');if(host.includes('mercadolivre')||host.includes('mercadolibre')){document.querySelectorAll('figure img,.ui-pdp-gallery img,.ui-pdp-image,img[src*=&quot;mlstatic.com/D_&quot;]').forEach(function(el){var src=el.getAttribute('data-zoom')||el.src||el.getAttribute('data-src')||'';if(src&&src.includes('mlstatic.com/D_')){var base=src.split('?')[0];var hd=base.replace(/D_Q_NP_/,'D_NQ_NP_2X_').replace(/-[A-Z]\.(jpg|webp|png|jpeg)/i,'-F.$1');if(!hd.includes('2X_')&&hd.includes('D_NQ_NP_'))hd=hd.replace('D_NQ_NP_','D_NQ_NP_2X_');imgs.add(hd);}});if(imgs.size===0){var raw=document.documentElement.innerHTML.replace(/\\u002F/g,'/').replace(/\\\//g,'/');var matches=raw.match(/https?:\/\/[^&quot;'\s<>]*mlstatic\.com\/D_[^&quot;'\s<>\)]+/g)||[];matches.forEach(function(u){var base=u.split('?')[0];var hd=base.replace(/D_Q_NP_/,'D_NQ_NP_2X_').replace(/-[A-Z]\.(jpg|webp|png|jpeg)/i,'-F.$1');if(!hd.includes('2X_')&&hd.includes('D_NQ_NP_'))hd=hd.replace('D_NQ_NP_','D_NQ_NP_2X_');imgs.add(hd);});}}else if(host.includes('shopee')){document.querySelectorAll('img,picture source,div[style*=&quot;url&quot;]').forEach(function(el){var src=el.src||el.srcset||el.getAttribute('data-src')||'';if(!src&&el.style&&el.style.backgroundImage){var bg=el.style.backgroundImage;var m=bg.match(/url\(forma?[\&quot;\']?([^\&quot;\']+)[\&quot;\']?\)/);if(m)src=m[1];}if(src&&(src.includes('susercontent.com')||src.includes('cf.shopee'))){var clean=src.split('_tn')[0].split('@')[0].split('?')[0];if(!clean.includes('icon')&&!clean.includes('assets')&&!clean.includes('avatar')&&!clean.includes('badge')){imgs.add(clean);}}});}else{document.querySelectorAll('img').forEach(function(el){var src=el.getAttribute('data-old-hires')||el.getAttribute('data-zoom-image')||el.getAttribute('data-large-img')||el.getAttribute('data-zoom')||el.src;if(src&&src.startsWith('http')){var low=src.toLowerCase();if(!low.includes('logo')&&!low.includes('icon')&&!low.includes('pixel')&&!low.includes('avatar')&&!low.includes('badge')&&!low.includes('footer')&&!low.includes('.svg')){imgs.add(src);}}});}if(imgs.size===0){alert('Nenhuma foto de produto foi identificada nesta página.');return;}var lista=Array.from(imgs);try{navigator.clipboard.writeText(lista.join('\n'));}catch(e){}var win=window.open('http://localhost:5000/?aba=extrator','ferramentas_vendedor');if(!win){alert('O navegador bloqueou a abertura da janela!\n\nAs '+lista.length+' fotos foram copiadas para a área de transferência. Volte ao Ferramentas do Vendedor e cole (Ctrl+V)!');return;}var p={tipo:'EXTRATOR_FOTOS',titulo:titulo,fotos:lista};var t=0;var iv=setInterval(function(){t++;win.postMessage(p,'*');if(t>=25)clearInterval(iv);},250);})();" onclick="alert('Arraste este botão para a sua Barra de Favoritos (no topo do navegador)!\n\nQuando estiver na página de qualquer anúncio no Mercado Livre ou Shopee, basta clicar no favorito para abrir todas as fotos aqui automaticamente.'); return false;" title="Arraste para sua barra de favoritos!">
+                                        ⭐ Baixar Fotos do Anúncio (Arraste para os Favoritos)
+                                    </a>
+                                    <button type="button" class="btn-copy-code" onclick="copiarCodigoBookmarklet()" title="Copiar código do favorito para colar manualmente">
+                                        📋 Copiar Código
+                                    </button>
+                                </div>
+                                <small style="color: var(--text-muted); font-size: 0.75rem;">
+                                    💡 <strong>Dica:</strong> Se sua barra de favoritos não estiver visível, pressione <kbd>Ctrl + Shift + B</kbd> no teclado.
+                                </small>
                             </div>
-                            <div class="tip-item">
-                                <strong>Opção 2 (Colar Código Fonte):</strong>
-                                <p>Na página do anúncio na Shopee, aperte <kbd>Ctrl + U</kbd>, selecione tudo (<kbd>Ctrl + A</kbd>), copie (<kbd>Ctrl + C</kbd>) e cole direto no campo de busca acima!</p>
+                            <div class="tip-item" style="margin-top: 10px; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 10px;">
+                                <strong>Opção 2 — Colar Código-Fonte da Página (Ctrl+U):</strong>
+                                <p>Na página do anúncio no Mercado Livre ou Shopee, pressione <kbd>Ctrl + U</kbd>, selecione tudo (<kbd>Ctrl + A</kbd>), copie (<kbd>Ctrl + C</kbd>) e clique no botão <strong>📋 Colar</strong> acima. Todas as fotos serão extraídas na hora!</p>
                             </div>
                         </div>
                     </div>
@@ -249,6 +260,29 @@
 
                 <!-- Resultados -->
                 <div class="extrator-results" id="extrator-results" style="display: none;">
+                    
+                    <!-- Alerta de bloqueio do marketplace (quando só vem 1 foto) -->
+                    <div class="extrator-alert-box warning" id="extrator-warning-banner" style="display: none;">
+                        <span class="alert-icon">⚠️</span>
+                        <div class="alert-body">
+                            <h4 id="warning-banner-titulo">Apenas a foto de capa foi capturada</h4>
+                            <p id="warning-banner-desc">O Mercado Livre bloqueou o acesso externo automático à galeria completa.</p>
+                            <div class="alert-tips">
+                                <div>👉 <strong>Solução Rápida (1 clique):</strong> Use o favorito <strong>⭐ Baixar Fotos do Anúncio</strong> direto na página do produto!</div>
+                                <div>👉 <strong>Ou Manual:</strong> Na página do anúncio, dê <kbd>Ctrl + U</kbd>, copie tudo (<kbd>Ctrl + A</kbd>, <kbd>Ctrl + C</kbd>) e clique no botão <strong>📋 Colar</strong> acima.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alerta de sucesso (importado via favorito) -->
+                    <div class="extrator-alert-box success" id="extrator-success-banner" style="display: none;">
+                        <span class="alert-icon">🎉</span>
+                        <div class="alert-body">
+                            <h4 id="success-banner-titulo">Fotos importadas diretamente do anúncio!</h4>
+                            <p id="success-banner-desc">Todas as imagens em alta resolução foram capturadas com sucesso.</p>
+                        </div>
+                    </div>
+
                     <div class="results-header">
                         <div class="results-info">
                             <h3 id="resultado-titulo">Título do Produto</h3>
@@ -592,6 +626,67 @@
             input.focus();
         }
 
+        async function colarDoClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (!text || !text.trim()) {
+                    alert('A área de transferência está vazia. Copie um link ou código-fonte antes de colar.');
+                    return;
+                }
+                const inputEl = document.getElementById('extrator-url');
+                inputEl.value = text.trim();
+                buscarFotos();
+            } catch (err) {
+                alert('Para colar com 1 clique, autorize o acesso à área de transferência ou use Ctrl + V.');
+            }
+        }
+
+        function copiarCodigoBookmarklet() {
+            const link = document.getElementById('link-bookmarklet');
+            if (!link) return;
+            const code = link.getAttribute('href');
+            navigator.clipboard.writeText(code).then(() => {
+                alert('✅ Código do botão copiado com sucesso!\n\nComo adicionar aos favoritos:\n1. Clique com botão direito na sua Barra de Favoritos > "Adicionar página" (ou "Adicionar favorito")\n2. Nome: ⭐ Baixar Fotos\n3. URL: Cole o código copiado (Ctrl+V)\n4. Salve e use sempre que estiver num anúncio!');
+            }).catch(() => {
+                prompt('Copie o código do favorito abaixo:', code);
+            });
+        }
+
+        // Listener para fotos recebidas diretamente via Botão Mágico (Bookmarklet)
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.tipo === 'EXTRATOR_FOTOS') {
+                const fotos = event.data.fotos || [];
+                const titulo = event.data.titulo || 'Fotos do Anúncio';
+                if (fotos.length > 0) {
+                    const extratorBtn = document.querySelectorAll('.tab-btn')[2];
+                    if (extratorBtn) {
+                        switchTab('tab-extrator', extratorBtn);
+                    }
+                    
+                    imagensExtraidas = fotos;
+                    tituloAnuncio = titulo;
+
+                    const payload = {
+                        sucesso: true,
+                        titulo: titulo,
+                        total: fotos.length,
+                        imagens: fotos.map((u, i) => ({
+                            id: String(i + 1),
+                            url: u,
+                            thumb: u.includes('susercontent.com') ? (u + '_tn') : u
+                        })),
+                        aviso_bloqueio_marketplace: false
+                    };
+                    
+                    renderizarResultados(payload, 'bookmarklet');
+                    
+                    if (event.source) {
+                        try { event.source.postMessage({ tipo: 'EXTRATOR_ACK' }, '*'); } catch(e) {}
+                    }
+                }
+            }
+        });
+
         async function buscarFotos() {
             const inputEl = document.getElementById('extrator-url');
             const valor = inputEl.value.trim();
@@ -624,31 +719,57 @@
 
                 imagensExtraidas = data.imagens || [];
                 tituloAnuncio = data.titulo || 'fotos_anuncio';
-                renderizarResultados(data);
+                renderizarResultados(data, 'busca');
 
             } catch (err) {
-                document.getElementById('extrator-error-msg').textContent = err.message;
-                errorEl.style.display = 'flex';
-                // Abre as dicas se for erro da Shopee
-                if (err.message.includes('Shopee') || valor.includes('shopee.com')) {
-                    document.getElementById('tips-content').style.display = 'block';
-                    document.getElementById('tips-arrow').textContent = '▲';
+                const msgEl = document.getElementById('extrator-error-msg');
+                if (err.message && (err.message.includes('bloqueou o acesso') || err.message.includes('Shopee') || err.message.includes('Mercado Livre'))) {
+                    msgEl.innerHTML = `
+                        <div>
+                            <strong>Proteção Anti-Bot do Marketplace:</strong> ${err.message}
+                            <div style="margin-top: 8px; font-size: 0.85rem; line-height: 1.5;">
+                                <div>👉 <strong>Opção Recomendada (1 Clique):</strong> Use o botão <strong>⭐ Baixar Fotos do Anúncio</strong> na sua Barra de Favoritos enquanto visualiza o produto!</div>
+                                <div>👉 <strong>Ou Manual:</strong> Na página do produto, dê <kbd>Ctrl + U</kbd>, copie tudo (<kbd>Ctrl + A</kbd>, <kbd>Ctrl + C</kbd>) e clique no botão <strong>📋 Colar</strong> acima.</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    msgEl.textContent = err.message;
                 }
+                errorEl.style.display = 'flex';
             } finally {
                 loadingEl.style.display = 'none';
                 btnBuscar.disabled = false;
             }
         }
 
-        function renderizarResultados(data) {
+        function renderizarResultados(data, origem) {
             const resultsEl = document.getElementById('extrator-results');
             const tituloEl = document.getElementById('resultado-titulo');
             const countEl = document.getElementById('resultado-count');
             const gridEl = document.getElementById('fotos-grid');
+            const warnBanner = document.getElementById('extrator-warning-banner');
+            const succBanner = document.getElementById('extrator-success-banner');
 
             tituloEl.textContent = data.titulo;
             countEl.textContent = `${data.total} foto(s) encontrada(s)`;
             gridEl.innerHTML = '';
+
+            // Exibição de alertas
+            if (data.aviso_bloqueio_marketplace) {
+                warnBanner.style.display = 'flex';
+                succBanner.style.display = 'none';
+                const mkt = data.marketplace_nome || 'Mercado Livre';
+                document.getElementById('warning-banner-titulo').textContent = `Apenas a foto de capa foi capturada (${mkt})`;
+                document.getElementById('warning-banner-desc').textContent = `O ${mkt} protege a galeria completa contra acessos externos de fora da página.`;
+            } else if (origem === 'bookmarklet') {
+                succBanner.style.display = 'flex';
+                warnBanner.style.display = 'none';
+                document.getElementById('success-banner-titulo').textContent = `🎉 ${data.total} fotos importadas em alta resolução!`;
+            } else {
+                warnBanner.style.display = 'none';
+                succBanner.style.display = 'none';
+            }
 
             data.imagens.forEach((img, idx) => {
                 const card = document.createElement('div');
