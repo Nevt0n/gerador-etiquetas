@@ -227,7 +227,7 @@
                                     Como o Mercado Livre e a Shopee bloqueiam robôs externos de acessar a galeria de fotos de fora, este botão lê as fotos direto da sua tela com 1 clique e abre esta ferramenta com todas as fotos prontas para baixar em ZIP!
                                 </p>
                                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px;">
-                                    <a class="bookmarklet-btn" id="link-bookmarklet" href="javascript:(function(){var imgs=new Set();var host=window.location.hostname.toLowerCase();var h1=document.querySelector('h1');var titulo=(h1&&h1.innerText.trim())?h1.innerText.trim():(document.title.replace(/[\-–\|].*$/,'').trim()||'fotos_anuncio');if(host.includes('mercadolivre')||host.includes('mercadolibre')){var mlGal=document.querySelector('.ui-pdp-gallery')||document.querySelector('[class*=&quot;ui-pdp-gallery&quot;]');if(mlGal){mlGal.querySelectorAll('figure img,.ui-pdp-gallery__column img,.ui-pdp-gallery__thumbnail img,img').forEach(function(el){var src=el.getAttribute('data-zoom')||el.src||el.getAttribute('data-src')||'';if(src&&src.includes('mlstatic.com/D_')){var base=src.split('?')[0];var hd=base.replace(/D_[A-Z_]*NP_(2X_)?/,'D_NQ_NP_2X_').replace(/-[A-Z]\.(jpg|webp|png|jpeg)/i,'-F.$1');imgs.add(hd);}});}if(imgs.size===0){document.querySelectorAll('script[type=&quot;application/ld+json&quot;]').forEach(function(s){try{var data=JSON.parse(s.innerText);if(data&&(data['@type']==='Product'||data.image)){var arr=Array.isArray(data.image)?data.image:[data.image];arr.forEach(function(u){if(u&&typeof u==='string'&&u.includes('mlstatic.com/D_')){var base=u.split('?')[0];var hd=base.replace(/D_[A-Z_]*NP_(2X_)?/,'D_NQ_NP_2X_').replace(/-[A-Z]\.(jpg|webp|png|jpeg)/i,'-F.$1');imgs.add(hd);}});}}catch(e){}});}}else if(host.includes('shopee')){try{if(window.__INITIAL_STATE__&&window.__INITIAL_STATE__.item&&Array.isArray(window.__INITIAL_STATE__.item.images)){window.__INITIAL_STATE__.item.images.forEach(function(h){if(h)imgs.add('https://down-br.img.susercontent.com/file/'+h);});}}catch(e){}if(imgs.size===0){var shpBox=document.querySelector('.product-briefing')||document.querySelector('[class*=&quot;product-briefing&quot;]')||document.querySelector('.page-product__detail');if(shpBox){shpBox.querySelectorAll('img,picture source,div[style*=&quot;url&quot;]').forEach(function(el){var src=el.src||el.srcset||el.getAttribute('data-src')||'';if(!src&&el.style&&el.style.backgroundImage){var m=el.style.backgroundImage.match(/url\(forma?[\&quot;\']?([^\&quot;\']+)[\&quot;\']?\)/);if(m)src=m[1];}if(src&&(src.includes('susercontent.com/file/')||src.includes('cf.shopee.com.br/file/'))){var clean=src.split('_tn')[0].split('@')[0].split('?')[0];if(!clean.includes('icon')&&!clean.includes('assets')&&!clean.includes('avatar')&&!clean.includes('badge')){imgs.add(clean);}}});}}}else if(host.includes('amazon')){var amz=document.querySelector('#altImages')||document.querySelector('#imageBlock')||document.querySelector('#main-image-container');if(amz){amz.querySelectorAll('img').forEach(function(el){var src=el.getAttribute('data-old-hires')||el.src;if(src&&!src.includes('play-icon')&&!src.includes('video')){var hd=src.replace(/\._[A-Z0-9_,]+_\./,'.');imgs.add(hd);}});}}else{document.querySelectorAll('script[type=&quot;application/ld+json&quot;]').forEach(function(s){try{var data=JSON.parse(s.innerText);if(data&&(data['@type']==='Product'||data.image)){var arr=Array.isArray(data.image)?data.image:[data.image];arr.forEach(function(u){if(u&&typeof u==='string'&&u.startsWith('http'))imgs.add(u);});}}catch(e){}});if(imgs.size===0){var root=document.querySelector('.product-gallery,.woocommerce-product-gallery,.product-images,[data-gallery],.photoswipe,[data-testid=&quot;carousel-item&quot;],[data-testid=&quot;main-image&quot;]')||document.querySelector('main,article')||document.body;root.querySelectorAll('img').forEach(function(el){if(el.closest('.recommendations,.related,.upsell,footer,header,nav,.comments,.reviews,aside,.cross-sells'))return;var src=el.getAttribute('data-zoom')||el.getAttribute('data-large-img')||el.src;if(src&&src.startsWith('http')){var low=src.toLowerCase();if(!low.includes('logo')&&!low.includes('icon')&&!low.includes('pixel')&&!low.includes('avatar')&&!low.includes('badge')&&!low.includes('.svg')){imgs.add(src);}}});}}if(imgs.size===0){alert('Nenhuma foto da galeria deste anúncio foi identificada.\nCertifique-se de estar na página principal de um produto.');return;}var lista=Array.from(imgs);try{navigator.clipboard.writeText(lista.join('\n'));}catch(e){}var win=window.open('http://localhost:5000/?aba=extrator','ferramentas_vendedor');if(!win){alert('O navegador bloqueou a janela!\n\nAs '+lista.length+' fotos deste anúncio foram copiadas para a área de transferência. Volte ao Ferramentas do Vendedor e clique em 📋 Colar!');return;}var p={tipo:'EXTRATOR_FOTOS',titulo:titulo,fotos:lista};var t=0;var iv=setInterval(function(){t++;win.postMessage(p,'*');if(t>=25)clearInterval(iv);},250);})();" onclick="alert('Arraste este botão para a sua Barra de Favoritos (no topo do navegador)!\n\nQuando estiver na página de qualquer anúncio no Mercado Livre ou Shopee, basta clicar no favorito para abrir todas as fotos aqui automaticamente.'); return false;" title="Arraste para sua barra de favoritos!">
+                                    <a class="bookmarklet-btn" id="link-bookmarklet" href="javascript:(function(){var seen=new Set();var list=[];var host=window.location.hostname.toLowerCase();var h1=document.querySelector('h1');var titulo=(h1&&h1.innerText.trim())?h1.innerText.trim():(document.title.replace(/[\-–\|].*$/,'').trim()||'fotos_anuncio');function addPic(url,thumb){if(!url)return;var k=url.split('?')[0];var m_ml=url.match(/([0-9]{4,}-ML[A-Z][0-9]{6,}(?:_[0-9]{4,})?)/);if(m_ml)k=m_ml[1];var m_sh=url.match(/\/file\/([a-zA-Z0-9_-]{16,})/);if(m_sh)k=m_sh[1].split('_tn')[0];if(!seen.has(k)){seen.add(k);list.push({url:url,thumb:thumb||url});}}if(host.includes('mercadolivre')||host.includes('mercadolibre')){var mlGal=document.querySelector('.ui-pdp-gallery')||document.querySelector('[class*=&quot;ui-pdp-gallery&quot;]');if(mlGal){mlGal.querySelectorAll('figure img,.ui-pdp-gallery__column img,.ui-pdp-gallery__thumbnail img').forEach(function(el){var src=el.getAttribute('data-zoom')||el.src||el.getAttribute('data-src')||'';if(src&&src.includes('mlstatic.com/D_')){var m=src.match(/([0-9]{4,}-ML[A-Z][0-9]{6,}(?:_[0-9]{4,})?)/);if(m){var pId=m[1];addPic('https://http2.mlstatic.com/D_NQ_NP_2X_'+pId+'-F.jpg','https://http2.mlstatic.com/D_Q_NP_'+pId+'-V.webp');}}});}if(list.length===0){document.querySelectorAll('script[type=&quot;application/ld+json&quot;]').forEach(function(s){try{var data=JSON.parse(s.innerText);if(data&&(data['@type']==='Product'||data.image)){var arr=Array.isArray(data.image)?data.image:[data.image];arr.forEach(function(u){if(u&&typeof u==='string'&&u.includes('mlstatic.com/D_')){var m=u.match(/([0-9]{4,}-ML[A-Z][0-9]{6,}(?:_[0-9]{4,})?)/);if(m){var pId=m[1];addPic('https://http2.mlstatic.com/D_NQ_NP_2X_'+pId+'-F.jpg','https://http2.mlstatic.com/D_Q_NP_'+pId+'-V.webp');}}});}}catch(e){}});}}else if(host.includes('shopee')){try{if(window.__INITIAL_STATE__&&window.__INITIAL_STATE__.item&&Array.isArray(window.__INITIAL_STATE__.item.images)){window.__INITIAL_STATE__.item.images.forEach(function(h){if(h){var u='https://down-br.img.susercontent.com/file/'+h;addPic(u,u+'_tn');}});}catch(e){}if(list.length===0){var shpBox=document.querySelector('.product-briefing')||document.querySelector('[class*=&quot;product-briefing&quot;]')||document.querySelector('.page-product__detail');if(shpBox){shpBox.querySelectorAll('img,picture source,div[style*=&quot;url&quot;]').forEach(function(el){var src=el.src||el.srcset||el.getAttribute('data-src')||'';if(!src&&el.style&&el.style.backgroundImage){var m=el.style.backgroundImage.match(/url\(forma?[\&quot;\']?([^\&quot;\']+)[\&quot;\']?\)/);if(m)src=m[1];}if(src&&(src.includes('susercontent.com/file/')||src.includes('cf.shopee.com.br/file/'))){var m=src.match(/\/file\/([a-zA-Z0-9_-]{16,})/);if(m){var clean=m[1].split('_tn')[0].split('@')[0].split('?')[0];if(!clean.includes('icon')&&!clean.includes('assets')&&!clean.includes('avatar')&&!clean.includes('badge')){var u='https://down-br.img.susercontent.com/file/'+clean;addPic(u,u+'_tn');}}}});}}}else if(host.includes('amazon')){var amz=document.querySelector('#altImages')||document.querySelector('#imageBlock')||document.querySelector('#main-image-container');if(amz){amz.querySelectorAll('img').forEach(function(el){var src=el.getAttribute('data-old-hires')||el.src;if(src&&!src.includes('play-icon')&&!src.includes('video')){var hd=src.replace(/\._[A-Z0-9_,]+_\./,'.');addPic(hd,hd);}});}}else{document.querySelectorAll('script[type=&quot;application/ld+json&quot;]').forEach(function(s){try{var data=JSON.parse(s.innerText);if(data&&(data['@type']==='Product'||data.image)){var arr=Array.isArray(data.image)?data.image:[data.image];arr.forEach(function(u){if(u&&typeof u==='string'&&u.startsWith('http'))addPic(u,u);});}}catch(e){}});if(list.length===0){var root=document.querySelector('.product-gallery,.woocommerce-product-gallery,.product-images,[data-gallery],.photoswipe,[data-testid=&quot;carousel-item&quot;],[data-testid=&quot;main-image&quot;]')||document.querySelector('main,article')||document.body;root.querySelectorAll('img').forEach(function(el){if(el.closest('.recommendations,.related,.upsell,footer,header,nav,.comments,.reviews,aside,.cross-sells'))return;var src=el.getAttribute('data-zoom')||el.getAttribute('data-large-img')||el.src;if(src&&src.startsWith('http')){var low=src.toLowerCase();if(!low.includes('logo')&&!low.includes('icon')&&!low.includes('pixel')&&!low.includes('avatar')&&!low.includes('badge')&&!low.includes('.svg')){addPic(src,src);}}});}}if(list.length===0){alert('Nenhuma foto da galeria deste anúncio foi identificada.\nCertifique-se de estar na página principal de um produto.');return;}var listaUrls=list.map(function(o){return o.url;});try{navigator.clipboard.writeText(listaUrls.join('\n'));}catch(e){}var win=window.open('http://localhost:5000/?aba=extrator','ferramentas_vendedor');if(!win){alert('O navegador bloqueou a janela!\n\nAs '+list.length+' fotos deste anúncio foram copiadas para a área de transferência. Volte ao Ferramentas do Vendedor e clique em 📋 Colar!');return;}var p={tipo:'EXTRATOR_FOTOS',titulo:titulo,fotos:list};var t=0;var iv=setInterval(function(){t++;win.postMessage(p,'*');if(t>=25)clearInterval(iv);},250);})();" onclick="alert('Arraste este botão para a sua Barra de Favoritos (no topo do navegador)!\n\nQuando estiver na página de qualquer anúncio no Mercado Livre ou Shopee, basta clicar no favorito para abrir todas as fotos aqui automaticamente.'); return false;" title="Arraste para sua barra de favoritos!">
                                         ⭐ Baixar Fotos do Anúncio (Arraste para os Favoritos)
                                     </a>
                                     <button type="button" class="btn-copy-code" onclick="copiarCodigoBookmarklet()" title="Copiar código do favorito para colar manualmente">
@@ -281,6 +281,21 @@
                             <h4 id="success-banner-titulo">Fotos importadas diretamente do anúncio!</h4>
                             <p id="success-banner-desc">Todas as imagens em alta resolução foram capturadas com sucesso.</p>
                         </div>
+                    </div>
+
+                    <!-- Filtro de Resolução (1080p+ vs Todas) -->
+                    <div class="extrator-filter-bar" id="extrator-filter-bar">
+                        <div class="filter-pills">
+                            <button type="button" class="filter-pill active" id="pill-1080p" onclick="aplicarFiltroResolucao('1080p')">
+                                <span>💎 Apenas 1080p+ (Full HD)</span>
+                                <span class="pill-count" id="pill-count-1080p">0</span>
+                            </button>
+                            <button type="button" class="filter-pill" id="pill-todas" onclick="aplicarFiltroResolucao('todas')">
+                                <span>📸 Todas as Fotos</span>
+                                <span class="pill-count" id="pill-count-todas">0</span>
+                            </button>
+                        </div>
+                        <span class="filter-info-hint" id="filter-info-hint">✨ Fotos em alta resolução prontas para anúncios</span>
                     </div>
 
                     <div class="results-header">
@@ -663,18 +678,30 @@
                         switchTab('tab-extrator', extratorBtn);
                     }
                     
-                    imagensExtraidas = fotos;
                     tituloAnuncio = titulo;
+
+                    // Padroniza itens para objetos {id, url, thumb}
+                    const imagens = fotos.map((item, i) => {
+                        if (typeof item === 'string') {
+                            const isShp = item.includes('susercontent.com') || item.includes('cf.shopee');
+                            return {
+                                id: String(i + 1),
+                                url: item,
+                                thumb: isShp ? (item + '_tn') : item
+                            };
+                        }
+                        return {
+                            id: String(i + 1),
+                            url: item.url,
+                            thumb: item.thumb || item.url
+                        };
+                    });
 
                     const payload = {
                         sucesso: true,
                         titulo: titulo,
-                        total: fotos.length,
-                        imagens: fotos.map((u, i) => ({
-                            id: String(i + 1),
-                            url: u,
-                            thumb: u.includes('susercontent.com') ? (u + '_tn') : u
-                        })),
+                        total: imagens.length,
+                        imagens: imagens,
                         aviso_bloqueio_marketplace: false
                     };
                     
@@ -717,7 +744,6 @@
                     throw new Error(data.erro || 'Falha ao extrair imagens');
                 }
 
-                imagensExtraidas = data.imagens || [];
                 tituloAnuncio = data.titulo || 'fotos_anuncio';
                 renderizarResultados(data, 'busca');
 
@@ -743,19 +769,20 @@
             }
         }
 
+        // ── Filtro de Resolução e Renderização de Resultados ──
+        let filtroResolucaoAtivo = '1080p'; // '1080p' (padrão) ou 'todas'
+
         function renderizarResultados(data, origem) {
             const resultsEl = document.getElementById('extrator-results');
             const tituloEl = document.getElementById('resultado-titulo');
-            const countEl = document.getElementById('resultado-count');
             const gridEl = document.getElementById('fotos-grid');
             const warnBanner = document.getElementById('extrator-warning-banner');
             const succBanner = document.getElementById('extrator-success-banner');
 
-            tituloEl.textContent = data.titulo;
-            countEl.textContent = `${data.total} foto(s) encontrada(s)`;
+            tituloEl.textContent = data.titulo || 'Fotos do Anúncio';
             gridEl.innerHTML = '';
 
-            // Exibição de alertas
+            // Exibição de alertas de status
             if (data.aviso_bloqueio_marketplace) {
                 warnBanner.style.display = 'flex';
                 succBanner.style.display = 'none';
@@ -765,19 +792,65 @@
             } else if (origem === 'bookmarklet') {
                 succBanner.style.display = 'flex';
                 warnBanner.style.display = 'none';
-                document.getElementById('success-banner-titulo').textContent = `🎉 ${data.total} fotos importadas em alta resolução!`;
+                document.getElementById('success-banner-titulo').textContent = `🎉 Fotos importadas diretamente do anúncio!`;
             } else {
                 warnBanner.style.display = 'none';
                 succBanner.style.display = 'none';
             }
 
-            data.imagens.forEach((img, idx) => {
+            // Deduplicação estrita por chave de identificação única do arquivo
+            const seenKeys = new Set();
+            const unicas = [];
+            (data.imagens || []).forEach((img, idx) => {
+                let k = img.url.split('?')[0];
+                const m_ml = img.url.match(/([0-9]{4,}-ML[A-Z][0-9]{6,}(?:_[0-9]{4,})?)/);
+                if (m_ml) {
+                    k = m_ml[1];
+                } else {
+                    const m_sh = img.url.match(/susercontent\.com\/file\/([a-zA-Z0-9_-]+)/);
+                    if (m_sh) k = m_sh[1].split('_tn')[0];
+                }
+
+                if (!seenKeys.has(k)) {
+                    seenKeys.add(k);
+                    const w = img.largura || 0;
+                    const h = img.altura || 0;
+                    // Se o backend já confirmou 1080p, ou largura/altura >= 1000px, ou URL é do ML em 2X
+                    const is1080 = (img.is_1080p === true) || (w >= 1000 || h >= 1000) || (w === 0 && img.url.includes('2X_'));
+                    unicas.push({
+                        id: img.id || String(idx + 1),
+                        url: img.url,
+                        thumb: img.thumb || img.url,
+                        largura: w,
+                        altura: h,
+                        is_1080p: is1080
+                    });
+                }
+            });
+
+            imagensExtraidas = unicas;
+
+            // Renderiza cada card de foto
+            unicas.forEach((img, idx) => {
                 const card = document.createElement('div');
                 card.className = 'foto-card';
+                card.id = `card-foto-${idx}`;
                 card.dataset.index = idx;
+                card.dataset.url = img.url;
+                card.dataset.is1080p = img.is_1080p ? 'true' : 'false';
 
                 const numFormatado = String(idx + 1).padStart(2, '0');
                 const nomeDownload = `foto_${numFormatado}.jpg`;
+
+                let resTexto = '1080p+';
+                let resClasse = 'hd';
+                if (img.largura && img.altura) {
+                    resTexto = `${img.largura} × ${img.altura} px`;
+                    resClasse = img.is_1080p ? 'hd' : 'sd';
+                } else if (!img.is_1080p) {
+                    resTexto = 'SD';
+                    resClasse = 'sd';
+                }
 
                 card.innerHTML = `
                     <div class="foto-card-top">
@@ -785,7 +858,10 @@
                             <input type="checkbox" class="foto-check" data-url="${img.url}" checked onchange="atualizarContadorSelecao()">
                             <span class="custom-check"></span>
                         </label>
-                        <span class="foto-badge">#${idx + 1}</span>
+                        <div class="foto-top-badges">
+                            <span class="foto-res-badge ${resClasse}" id="badge-res-${idx}">${resTexto}</span>
+                            <span class="foto-badge">#${idx + 1}</span>
+                        </div>
                     </div>
                     <div class="foto-img-wrap" onclick="window.open('${img.url}', '_blank')">
                         <img src="${img.thumb || img.url}" alt="Foto ${idx + 1}" loading="lazy" onerror="this.src='${img.url}'">
@@ -800,33 +876,136 @@
                     </div>
                 `;
                 gridEl.appendChild(card);
+
+                // Se as dimensões exatas em pixels ainda não foram aferidas pelo servidor
+                if (!img.largura || img.largura === 0) {
+                    const probe = new Image();
+                    probe.src = img.url;
+                    probe.onload = function() {
+                        img.largura = this.naturalWidth;
+                        img.altura = this.naturalHeight;
+                        img.is_1080p = (img.largura >= 1000 || img.altura >= 1000);
+                        card.dataset.is1080p = img.is_1080p ? 'true' : 'false';
+                        
+                        const badgeEl = document.getElementById(`badge-res-${idx}`);
+                        if (badgeEl) {
+                            badgeEl.textContent = `${img.largura} × ${img.altura} px`;
+                            badgeEl.className = `foto-res-badge ${img.is_1080p ? 'hd' : 'sd'}`;
+                        }
+                        atualizarContadoresFiltro();
+                        aplicarVisibilidadeFiltro();
+                    };
+                }
             });
 
-            document.getElementById('check-selecionar-todas').checked = true;
-            atualizarContadorSelecao();
+            // Ativa o filtro padrão de 1080p+
+            filtroResolucaoAtivo = '1080p';
+            atualizarContadoresFiltro();
+            aplicarVisibilidadeFiltro();
+
             resultsEl.style.display = 'block';
             resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
+        function aplicarFiltroResolucao(filtro) {
+            filtroResolucaoAtivo = filtro;
+            
+            document.getElementById('pill-1080p').classList.toggle('active', filtro === '1080p');
+            document.getElementById('pill-todas').classList.toggle('active', filtro === 'todas');
+
+            aplicarVisibilidadeFiltro();
+        }
+
+        function aplicarVisibilidadeFiltro() {
+            const cards = document.querySelectorAll('.foto-card');
+            const totalFotos = cards.length;
+            const count1080p = Array.from(cards).filter(c => c.dataset.is1080p === 'true').length;
+
+            // Se o filtro for 1080p mas nenhuma foto for 1080p, mantém todas visíveis para não ficar vazio
+            let filtroEfetivo = filtroResolucaoAtivo;
+            if (filtroResolucaoAtivo === '1080p' && count1080p === 0 && totalFotos > 0) {
+                filtroEfetivo = 'todas';
+                document.getElementById('pill-1080p').classList.remove('active');
+                document.getElementById('pill-todas').classList.add('active');
+            }
+
+            cards.forEach(card => {
+                const is1080 = card.dataset.is1080p === 'true';
+                const chk = card.querySelector('.foto-check');
+                if (filtroEfetivo === '1080p') {
+                    if (is1080) {
+                        card.style.display = 'flex';
+                        chk.checked = true;
+                    } else {
+                        card.style.display = 'none';
+                        chk.checked = false;
+                    }
+                } else {
+                    card.style.display = 'flex';
+                    chk.checked = true;
+                }
+            });
+
+            const infoHint = document.getElementById('filter-info-hint');
+            if (filtroEfetivo === '1080p') {
+                const ocultadas = totalFotos - count1080p;
+                if (ocultadas > 0) {
+                    infoHint.innerHTML = `✨ <strong>${count1080p} fotos Full HD (1080p+)</strong> ativas (${ocultadas} foto(s) de menor resolução ou duplicadas ocultadas)`;
+                } else {
+                    infoHint.innerHTML = `✨ Todas as <strong>${totalFotos} fotos</strong> estão em qualidade Full HD (1080p+)`;
+                }
+            } else {
+                infoHint.innerHTML = `📸 Exibindo todas as <strong>${totalFotos} fotos</strong> encontradas`;
+            }
+
+            atualizarContadorSelecao();
+        }
+
+        function atualizarContadoresFiltro() {
+            const cards = document.querySelectorAll('.foto-card');
+            const totalFotos = cards.length;
+            const count1080p = Array.from(cards).filter(c => c.dataset.is1080p === 'true').length;
+
+            const pill1080 = document.getElementById('pill-count-1080p');
+            const pillTodas = document.getElementById('pill-count-todas');
+            const countEl = document.getElementById('resultado-count');
+
+            if (pill1080) pill1080.textContent = count1080p;
+            if (pillTodas) pillTodas.textContent = totalFotos;
+            if (countEl) {
+                if (filtroResolucaoAtivo === '1080p') {
+                    countEl.textContent = `${count1080p} foto(s) 1080p+ selecionada(s) (de ${totalFotos} totais)`;
+                } else {
+                    countEl.textContent = `${totalFotos} foto(s) encontrada(s)`;
+                }
+            }
+        }
+
         function toggleSelecionarTodas(checked) {
-            document.querySelectorAll('.foto-check').forEach(chk => chk.checked = checked);
+            // Marca ou desmarca estritamente os cards que estão VISÍVEIS na tela
+            document.querySelectorAll('.foto-card:not([style*="display: none"]) .foto-check').forEach(chk => {
+                chk.checked = checked;
+            });
             atualizarContadorSelecao();
         }
 
         function atualizarContadorSelecao() {
-            const checks = document.querySelectorAll('.foto-check:checked');
-            const totalChecks = document.querySelectorAll('.foto-check');
+            // Apenas fotos VISÍVEIS e CHECADAS contam para o botão ZIP
+            const checksVisiveis = document.querySelectorAll('.foto-card:not([style*="display: none"]) .foto-check:checked');
+            const totalChecksVisiveis = document.querySelectorAll('.foto-card:not([style*="display: none"]) .foto-check');
+            
             const badge = document.getElementById('zip-count-badge');
             const btnZip = document.getElementById('btn-download-zip');
             const chkTodas = document.getElementById('check-selecionar-todas');
 
-            badge.textContent = `(${checks.length})`;
-            btnZip.disabled = checks.length === 0;
-            chkTodas.checked = (checks.length === totalChecks.length && totalChecks.length > 0);
+            badge.textContent = `(${checksVisiveis.length})`;
+            btnZip.disabled = checksVisiveis.length === 0;
+            chkTodas.checked = (checksVisiveis.length === totalChecksVisiveis.length && totalChecksVisiveis.length > 0);
         }
 
         async function baixarSelecionadasZip() {
-            const checks = document.querySelectorAll('.foto-check:checked');
+            // Baixa estritamente as fotos VISÍVEIS e MARCADAS
+            const checks = document.querySelectorAll('.foto-card:not([style*="display: none"]) .foto-check:checked');
             if (checks.length === 0) {
                 alert('Selecione pelo menos uma foto para baixar.');
                 return;

@@ -5,6 +5,8 @@ import zipfile
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
+from PIL import ImageFile
+from concurrent.futures import ThreadPoolExecutor
 
 USER_AGENTS = {
     'googlebot': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
@@ -21,21 +23,68 @@ def limpar_nome_arquivo(nome):
     return limpo[:60] if limpo else "fotos_anuncio"
 
 def normalizar_ml_url(u):
-    """Gera URL de alta resolução 2X e thumbnail para Mercado Livre."""
+    """Gera URL de alta resolução 2X e thumbnail para Mercado Livre padronizada em JPG."""
     u_clean = u.split('?')[0]
     m_id = re.search(r'([0-9]{4,}-ML[A-Z][0-9]{6,}(?:_[0-9]{4,})?)', u_clean)
     if m_id:
         pic_id = m_id.group(1)
-        ext_match = re.search(r'\.(jpg|jpeg|png|webp)', u_clean, re.IGNORECASE)
-        ext = ext_match.group(1).lower() if ext_match else 'jpg'
-        hd = f"https://http2.mlstatic.com/D_NQ_NP_2X_{pic_id}-F.{ext}"
+        hd = f"https://http2.mlstatic.com/D_NQ_NP_2X_{pic_id}-F.jpg"
         thumb = f"https://http2.mlstatic.com/D_Q_NP_{pic_id}-V.webp"
         return pic_id, hd, thumb
     hd = re.sub(r'D_[A-Z_]*NP_(?:2X_)?', 'D_NQ_NP_2X_', u_clean)
-    hd = re.sub(r'-[A-Z]\.(jpg|jpeg|png|webp)', r'-F.\1', hd)
+    hd = re.sub(r'-[A-Z]\.(jpg|jpeg|png|webp)', r'-F.jpg', hd)
     thumb = re.sub(r'D_[A-Z_]*NP_(?:2X_)?', 'D_Q_NP_', hd)
     thumb = re.sub(r'-[A-Z]\.(jpg|jpeg|png|webp)', r'-V.webp', thumb)
     return hd, hd, thumb
+
+def medir_dimensoes_imagem(url):
+    """Obtém largura e altura da imagem lendo apenas os primeiros bytes do cabeçalho."""
+    try:
+        headers = {'User-Agent': USER_AGENTS['browser']}
+        with requests.get(url, headers=headers, stream=True, timeout=3.5) as r:
+            if r.status_code == 200:
+                p = ImageFile.Parser()
+                for chunk in r.iter_content(chunk_size=1024):
+                    if not chunk: break
+                    p.feed(chunk)
+                    if p.image:
+                        return p.image.size
+    except Exception:
+        pass
+    return 0, 0
+
+def enriquecer_e_deduplicar(imagens_lista):
+    """Deduplica rigorosamente por ID ou URL e mede resolução em paralelo."""
+    if not imagens_lista:
+        return []
+
+    seen_keys = set()
+    unicas = []
+    for im in imagens_lista:
+        k = im.get('id') or im.get('url')
+        m_ml = re.search(r'([0-9]{4,}-ML[A-Z][0-9]{6,}(?:_[0-9]{4,})?)', im['url'])
+        if m_ml:
+            k = m_ml.group(1)
+        else:
+            m_sh = re.search(r'susercontent\.com/file/([a-zA-Z0-9_-]+)', im['url'])
+            if m_sh:
+                k = m_sh.group(1).split('_tn')[0]
+
+        if k not in seen_keys:
+            seen_keys.add(k)
+            unicas.append(im)
+
+    def _medir(im):
+        w, h = medir_dimensoes_imagem(im['url'])
+        im['largura'] = w
+        im['altura'] = h
+        # Considera 1080p+ se a maior dimensão for >= 1000px (ou 2X original do Mercado Livre)
+        im['is_1080p'] = bool(w >= 1000 or h >= 1000 or (w == 0 and '2X_' in im['url']))
+        return im
+
+    max_w = min(12, len(unicas) or 1)
+    with ThreadPoolExecutor(max_workers=max_w) as ex:
+        return list(ex.map(_medir, unicas))
 
 def extrair_mercadolivre(url, html_text=None):
     """Extrai fotos em alta resolução estritamente da galeria do anúncio do Mercado Livre."""
@@ -360,6 +409,7 @@ def processar_extracao(entrada):
     if is_direct_img and not ('mercadolivre.com.br/' in low_entrada or 'shopee.com.br/' in low_entrada):
         titulo, imagens, erro = extrair_texto_bruto(entrada)
         if imagens:
+            imagens = enriquecer_e_deduplicar(imagens)
             return {
                 'sucesso': True,
                 'titulo': titulo or 'Imagem Direta',
@@ -413,6 +463,9 @@ def processar_extracao(entrada):
                 'erro': f'O {marketplace_nome} bloqueou o acesso externo automático deste anúncio.'
             }
         return {'sucesso': False, 'erro': 'Nenhuma imagem foi encontrada no anúncio informado.'}
+
+    if imagens:
+        imagens = enriquecer_e_deduplicar(imagens)
 
     return {
         'sucesso': True,
